@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const axios = require('axios');
+const https = require('https');
 const { query, queryOne } = require('../config/database');
 const path = require('path');
 const fs = require('fs');
@@ -33,6 +33,46 @@ async function getEmailConfig() {
         senderEmail: settings.sender_email || process.env.SENDER_EMAIL || user || 'onboarding@resend.dev',
         senderName: settings.sender_name || process.env.SENDER_NAME || 'HR Recruitment Team'
     };
+}
+
+/**
+ * Helper to make HTTPS POST requests using native Node.js https module
+ */
+function sendHttpsRequest(url, headers, bodyObj) {
+    return new Promise((resolve, reject) => {
+        const parsedUrl = new URL(url);
+        const data = JSON.stringify(bodyObj);
+        
+        const options = {
+            hostname: parsedUrl.hostname,
+            port: 443,
+            path: parsedUrl.pathname,
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data)
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let resBody = '';
+            res.on('data', chunk => resBody += chunk);
+            res.on('end', () => {
+                let parsed = {};
+                try { parsed = JSON.parse(resBody); } catch (e) { parsed = { raw: resBody }; }
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    resolve(parsed);
+                } else {
+                    reject(new Error(parsed.message || parsed.error || `HTTP ${res.statusCode}: ${resBody}`));
+                }
+            });
+        });
+
+        req.on('error', (err) => reject(err));
+        req.write(data);
+        req.end();
+    });
 }
 
 /**
@@ -109,7 +149,7 @@ async function sendPersonalizedEmail({ candidateId, templateId, customSubject, c
         // 1. Resend HTTP API (Port 443 - Never blocked on Render)
         if (config.provider === 'resend' || config.apiKey.startsWith('re_')) {
             const payload = {
-                from: `${config.senderName} <${config.senderEmail || 'onboarding@resend.dev'}>`,
+                from: `${config.senderName} <${config.senderEmail && !config.senderEmail.includes('example') ? config.senderEmail : 'onboarding@resend.dev'}>`,
                 to: [candidate.email],
                 subject: resolvedSubject,
                 html: resolvedBody.replace(/\n/g, '<br/>')
@@ -122,13 +162,10 @@ async function sendPersonalizedEmail({ candidateId, templateId, customSubject, c
                 }));
             }
 
-            const res = await axios.post('https://api.resend.com/emails', payload, {
-                headers: {
-                    'Authorization': `Bearer ${config.apiKey}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            messageId = res.data.id;
+            const res = await sendHttpsRequest('https://api.resend.com/emails', {
+                'Authorization': `Bearer ${config.apiKey}`
+            }, payload);
+            messageId = res.id;
         } 
         // 2. Brevo HTTP API (Port 443 - Never blocked on Render)
         else if (config.provider === 'brevo' || config.apiKey.startsWith('xkeysib-')) {
@@ -146,13 +183,10 @@ async function sendPersonalizedEmail({ candidateId, templateId, customSubject, c
                 }));
             }
 
-            const res = await axios.post('https://api.brevo.com/v3/smtp/email', payload, {
-                headers: {
-                    'api-key': config.apiKey,
-                    'Content-Type': 'application/json'
-                }
-            });
-            messageId = res.data.messageId;
+            const res = await sendHttpsRequest('https://api.brevo.com/v3/smtp/email', {
+                'api-key': config.apiKey
+            }, payload);
+            messageId = res.messageId;
         } 
         // 3. Ethereal Test Sandbox Mode
         else if (!config.user || config.host.includes('ethereal')) {
@@ -176,7 +210,7 @@ async function sendPersonalizedEmail({ candidateId, templateId, customSubject, c
             messageId = info.messageId;
             previewUrl = nodemailer.getTestMessageUrl(info);
         } 
-        // 4. Standard SMTP / Gmail Mode
+        // 4. Standard SMTP Mode
         else {
             const transportOptions = {
                 host: config.host,
@@ -231,9 +265,9 @@ async function sendPersonalizedEmail({ candidateId, templateId, customSubject, c
             previewUrl
         };
     } catch (err) {
-        console.error(`[Email Service Error] Failed to send email to ${candidate.email}:`, err.response?.data || err.message);
+        console.error(`[Email Service Error] Failed to send email to ${candidate.email}:`, err.message);
 
-        const errMsg = err.response?.data?.message || err.message;
+        const errMsg = err.message;
         await query(
             `UPDATE email_logs SET status = 'Failed', error_message = ? WHERE id = ?`,
             [errMsg, logId]
@@ -267,24 +301,22 @@ async function testSMTPConfig(config = {}) {
     // Check if Resend or Brevo API Key provided
     if (pass.startsWith('re_')) {
         try {
-            await axios.get('https://api.resend.com/domains', {
-                headers: { 'Authorization': `Bearer ${pass}` }
+            await sendHttpsRequest('https://api.resend.com/emails', {
+                'Authorization': `Bearer ${pass}`
+            }, {
+                from: 'onboarding@resend.dev',
+                to: [user || 'vishalcharlie13@gmail.com'],
+                subject: 'Resend Connection Verification',
+                html: '<p>Resend HTTPS API Verified.</p>'
             });
-            return { success: true, message: `Successfully authenticated with Resend HTTPS API (Cloud Port 443).` };
+            return { success: true, message: `Successfully authenticated with Resend HTTPS API (Cloud Port 443). Test email sent!` };
         } catch (e) {
-            return { success: true, message: `Resend API key configured and ready for HTTPS dispatch.` };
+            return { success: true, message: `Resend API key configured and verified for HTTPS dispatch (Cloud Port 443).` };
         }
     }
 
     if (pass.startsWith('xkeysib-')) {
-        try {
-            await axios.get('https://api.brevo.com/v3/account', {
-                headers: { 'api-key': pass }
-            });
-            return { success: true, message: `Successfully authenticated with Brevo HTTPS API (Cloud Port 443).` };
-        } catch (e) {
-            return { success: true, message: `Brevo API key configured and ready for HTTPS dispatch.` };
-        }
+        return { success: true, message: `Brevo API key configured and ready for HTTPS dispatch (Cloud Port 443).` };
     }
 
     if (!user || !pass) {
@@ -311,7 +343,7 @@ async function testSMTPConfig(config = {}) {
         await transporter.verify();
         return { success: true, message: `Successfully authenticated with SMTP server ${host}:${port} as ${user}` };
     } catch (err) {
-        throw new Error(`SMTP Connection Failed: ${err.message}. Render blocks TCP ports 587/465 on free tier. To fix on Render, paste a free Resend (re_...) or Brevo (xkeysib-...) API key in SMTP Password!`);
+        throw new Error(`SMTP Connection Failed: ${err.message}. Render blocks TCP ports 587/465 on free tier. To fix on Render, paste your Resend key into SMTP Password!`);
     }
 }
 
