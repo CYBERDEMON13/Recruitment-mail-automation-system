@@ -20,8 +20,10 @@ services:
       - key: SMTP_SECURE
         value: false
       - key: SENDER_EMAIL
-        value: your_email@gmail.com
+        value: vishalcharlie13@gmail.com
+      - key: SENDER_NAME
+        value: HR Recruitment Team
       - key: SMTP_USER
-        value: your_email@gmail.com
+        value: vishalcharlie13@gmail.com
       - key: SMTP_PASS
-        sync: false
+        value: pmynazfjfhhzcxkc
