@@ -4,7 +4,7 @@
   "description": "Recruitment Email Automation System",
   "scripts": {
     "build": "npm run install:all && npm run build:frontend",
-    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "install:all": "cd backend && npm install --include=dev && cd ../frontend && npm install --include=dev",
     "build:frontend": "cd frontend && npm run build",
     "start": "cd backend && node server.js"
   },
