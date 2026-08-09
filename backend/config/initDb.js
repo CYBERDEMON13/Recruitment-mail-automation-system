@@ -15,12 +15,20 @@ async function initDb() {
                     name TEXT NOT NULL,
                     email TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
-                    role TEXT DEFAULT 'admin',
+                    role TEXT DEFAULT 'staff',
+                    status TEXT DEFAULT 'pending',
                     avatar TEXT DEFAULT NULL,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
             `);
+
+            // Migration for existing tables: check if status column exists
+            const userPragma = await query(`PRAGMA table_info("users")`);
+            const hasStatus = userPragma.some(c => c.name === 'status');
+            if (!hasStatus) {
+                await query(`ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'approved';`);
+            }
 
             await query(`
                 CREATE TABLE IF NOT EXISTS candidates (
@@ -99,7 +107,8 @@ async function initDb() {
                     name VARCHAR(100) NOT NULL,
                     email VARCHAR(150) UNIQUE NOT NULL,
                     password VARCHAR(255) NOT NULL,
-                    role VARCHAR(20) DEFAULT 'admin',
+                    role VARCHAR(20) DEFAULT 'staff',
+                    status VARCHAR(30) DEFAULT 'pending',
                     avatar VARCHAR(255) DEFAULT NULL,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -182,10 +191,13 @@ async function initDb() {
         if (!existingAdmin) {
             const hashedPassword = await bcrypt.hash('admin123', 10);
             await query(
-                'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-                ['HR Administrator', 'admin@hr.com', hashedPassword, 'admin']
+                'INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)',
+                ['HR Administrator', 'admin@hr.com', hashedPassword, 'admin', 'approved']
             );
-            console.log('[Database Init] Created default HR Admin: admin@hr.com / admin123');
+            console.log('[Database Init] Created default HR Admin: admin@hr.com / admin123 (Approved)');
+        } else {
+            // Ensure existing admin@hr.com has admin role and approved status
+            await query('UPDATE users SET role = ?, status = ? WHERE email = ?', ['admin', 'approved', 'admin@hr.com']);
         }
 
         // Seed default Email Templates

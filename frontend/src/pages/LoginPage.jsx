@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, Clock, AlertTriangle } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState(null);
 
   const { login, googleLogin } = useAuth();
   const { showError, showSuccess } = useToast();
@@ -23,23 +24,29 @@ export default function LoginPage() {
     }
 
     setLoading(true);
+    setPendingMessage(null);
     try {
       const res = await login(email, password);
       if (res.success) {
-        showSuccess('Welcome back, HR Administrator!', 'Authentication Successful');
+        showSuccess('Welcome back to HR Portal!', 'Authentication Successful');
         navigate('/');
       }
     } catch (err) {
+      const isPending = err.response?.data?.pending;
       const msg = err.response?.data?.message || 'Login failed. Please check your credentials.';
-      showError(msg, 'Authentication Error');
+      
+      if (isPending) {
+        setPendingMessage(msg);
+      } else {
+        showError(msg, 'Authentication Error');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    // Prompt user for Gmail address or use Google OAuth
-    const gmailInput = prompt('Enter your Gmail address to sign in with Google:', 'vishalcharlie13@gmail.com');
+    const gmailInput = prompt('Enter your Gmail address to sign in / request access:', 'vishalcharlie13@gmail.com');
     if (!gmailInput) return;
 
     if (!gmailInput.includes('@')) {
@@ -48,6 +55,7 @@ export default function LoginPage() {
     }
 
     setGoogleLoading(true);
+    setPendingMessage(null);
     try {
       const name = gmailInput.split('@')[0].replace('.', ' ');
       const res = await googleLogin({
@@ -56,12 +64,20 @@ export default function LoginPage() {
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82f6&color=fff`
       });
 
-      if (res.success) {
-        showSuccess(`Welcome, ${res.user.name}! Signed in via Google account (${gmailInput}).`, 'Google Auth Successful');
+      if (res.pending) {
+        setPendingMessage(res.message);
+      } else if (res.success) {
+        showSuccess(`Welcome back, ${res.user.name}! Signed in via Google (${gmailInput}).`, 'Google Auth Successful');
         navigate('/');
       }
     } catch (err) {
-      showError(err.response?.data?.message || 'Google login failed.');
+      const isPending = err.response?.data?.pending;
+      const msg = err.response?.data?.message || 'Google authentication failed.';
+      if (isPending) {
+        setPendingMessage(msg);
+      } else {
+        showError(msg);
+      }
     } finally {
       setGoogleLoading(false);
     }
@@ -115,6 +131,29 @@ export default function LoginPage() {
             Recruitment Email & Document Automation System
           </p>
         </div>
+
+        {/* Pending Approval Notification Banner */}
+        {pendingMessage && (
+          <div style={{
+            padding: '1.15rem',
+            borderRadius: '14px',
+            background: 'rgba(245, 158, 11, 0.15)',
+            border: '1px solid rgba(245, 158, 11, 0.4)',
+            marginBottom: '1.5rem',
+            color: '#fef3c7',
+            fontSize: '0.875rem',
+            lineHeight: 1.5
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, color: '#fbbf24', marginBottom: '0.35rem', fontSize: '0.95rem' }}>
+              <Clock size={20} />
+              <span>Access Request Pending Approval</span>
+            </div>
+            <div>{pendingMessage}</div>
+            <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#fde68a' }}>
+              ✉️ An automated email notification has been dispatched to the Administrator (admin@hr.com).
+            </div>
+          </div>
+        )}
 
         {/* Google Sign In Button */}
         <button

@@ -289,6 +289,77 @@ async function sendPersonalizedEmail({ candidateId, templateId, customSubject, c
 }
 
 /**
+ * Send Email Notification to Administrator when a new user requests access
+ */
+async function sendAdminAccessNotification({ userName, userEmail, userRole = 'staff' }) {
+    try {
+        const config = await getEmailConfig();
+        const adminUser = await queryOne("SELECT email FROM users WHERE role = 'admin' AND status = 'approved' ORDER BY id ASC LIMIT 1");
+        const adminEmail = adminUser ? adminUser.email : (config.senderEmail || 'admin@hr.com');
+
+        const subject = `🔔 Action Required: New HR Portal Access Request from ${userName}`;
+        const body = `Dear HR Administrator,\n\nA new user has requested access to the Recruitment Email & Document Automation System:\n\n` +
+            `• Name: ${userName}\n` +
+            `• Email: ${userEmail}\n` +
+            `• Requested Default Role: ${userRole}\n` +
+            `• Request Time: ${new Date().toLocaleString()}\n\n` +
+            `Status: PENDING APPROVAL\n\n` +
+            `Please log into your HR Portal -> Access Requests section to approve or decline access and assign their role.\n\n` +
+            `Best regards,\nRecruitFlow Security Engine`;
+
+        console.log(`[Access Request] Dispatching Admin notification email to ${adminEmail} for new user ${userEmail}...`);
+
+        if (config.provider === 'resend' || config.apiKey.startsWith('re_')) {
+            await sendHttpsRequest('https://api.resend.com/emails', {
+                'Authorization': `Bearer ${config.apiKey}`
+            }, {
+                from: `${config.senderName} <${config.senderEmail && !config.senderEmail.includes('example') ? config.senderEmail : 'onboarding@resend.dev'}>`,
+                to: [adminEmail],
+                subject,
+                html: body.replace(/\n/g, '<br/>')
+            });
+        } else if (!config.user || config.host.includes('ethereal')) {
+            const testAccount = await nodemailer.createTestAccount();
+            const transporter = nodemailer.createTransport({
+                host: 'smtp.ethereal.email',
+                port: 587,
+                secure: false,
+                auth: { user: testAccount.user, pass: testAccount.pass },
+                family: 4
+            });
+            await transporter.sendMail({
+                from: `"${config.senderName}" <${testAccount.user}>`,
+                to: adminEmail,
+                subject,
+                html: body.replace(/\n/g, '<br/>')
+            });
+        } else {
+            const transportOptions = {
+                host: config.host,
+                port: config.port,
+                secure: config.secure,
+                auth: { user: config.user, pass: config.pass },
+                tls: { rejectUnauthorized: false },
+                family: 4
+            };
+            if (config.host.includes('gmail.com')) transportOptions.service = 'gmail';
+            const transporter = nodemailer.createTransport(transportOptions);
+            await transporter.sendMail({
+                from: `"${config.senderName}" <${config.senderEmail}>`,
+                to: adminEmail,
+                subject,
+                html: body.replace(/\n/g, '<br/>')
+            });
+        }
+        console.log(`[Access Request Notification] Admin email sent to ${adminEmail}.`);
+        return true;
+    } catch (err) {
+        console.error('[Admin Notification Error]', err.message);
+        return false;
+    }
+}
+
+/**
  * Verify / Test SMTP & HTTP API Configuration
  */
 async function testSMTPConfig(config = {}) {
@@ -351,5 +422,6 @@ module.exports = {
     getEmailConfig,
     replacePlaceholders,
     sendPersonalizedEmail,
+    sendAdminAccessNotification,
     testSMTPConfig
 };

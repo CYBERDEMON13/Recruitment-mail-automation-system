@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { query, queryOne } = require('../config/database');
 const { JWT_SECRET } = require('../middleware/auth');
+const { sendAdminAccessNotification } = require('../services/emailService');
 
 async function login(req, res) {
     try {
@@ -21,8 +22,24 @@ async function login(req, res) {
             return res.status(401).json({ success: false, message: 'Invalid credentials. Incorrect password.' });
         }
 
+        // Check user approval status
+        if (user.status === 'pending') {
+            return res.status(403).json({
+                success: false,
+                pending: true,
+                message: 'Your account access request is pending approval by the HR Administrator. An email notification has been sent to the admin.'
+            });
+        }
+
+        if (user.status === 'rejected') {
+            return res.status(403).json({
+                success: false,
+                message: 'Your access request was declined by the HR Administrator.'
+            });
+        }
+
         const token = jwt.sign(
-            { id: user.id, name: user.name, email: user.email, role: user.role },
+            { id: user.id, name: user.name, email: user.email, role: user.role, status: user.status },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -36,6 +53,7 @@ async function login(req, res) {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                status: user.status,
                 avatar: user.avatar
             }
         });
@@ -45,9 +63,42 @@ async function login(req, res) {
     }
 }
 
+async function register(req, res) {
+    try {
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
+        }
+
+        const existingUser = await queryOne('SELECT * FROM users WHERE email = ?', [email]);
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: 'An account with this email address already exists.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await query(
+            'INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)',
+            [name, email, hashedPassword, 'staff', 'pending']
+        );
+
+        // Send Email Notification to Admin
+        sendAdminAccessNotification({ userName: name, userEmail: email, userRole: 'staff' });
+
+        return res.json({
+            success: true,
+            pending: true,
+            message: 'Access Request Submitted! An email notification has been sent to the HR Administrator. You will receive access once approved.'
+        });
+    } catch (err) {
+        console.error('[Register Error]', err);
+        return res.status(500).json({ success: false, message: 'Error submitting access request: ' + err.message });
+    }
+}
+
 async function googleLogin(req, res) {
     try {
-        const { email, name, avatar, googleId } = req.body;
+        const { email, name, avatar } = req.body;
 
         if (!email) {
             return res.status(400).json({ success: false, message: 'Google account email is required.' });
@@ -57,21 +108,47 @@ async function googleLogin(req, res) {
         let user = await queryOne('SELECT * FROM users WHERE email = ?', [email]);
 
         if (!user) {
-            // Auto-create HR user account for Google Sign-In
+            // Auto-create User account with PENDING approval for Google Sign-In
             const dummyPassword = await bcrypt.hash(`google_${Date.now()}_${Math.random()}`, 10);
             const insertRes = await query(
-                'INSERT INTO users (name, email, password, role, avatar) VALUES (?, ?, ?, ?, ?)',
-                [name || email.split('@')[0], email, dummyPassword, 'admin', avatar || null]
+                'INSERT INTO users (name, email, password, role, status, avatar) VALUES (?, ?, ?, ?, ?, ?)',
+                [name || email.split('@')[0], email, dummyPassword, 'staff', 'pending', avatar || null]
             );
             user = await queryOne('SELECT * FROM users WHERE id = ?', [insertRes.insertId]);
-            console.log(`[Google Auth] Created new user account via Google Sign-In: ${email}`);
-        } else if (avatar && !user.avatar) {
-            // Update avatar if missing
+            console.log(`[Google Auth] Created new user access request for Google account: ${email}`);
+
+            // Dispatch notification email to Administrator
+            sendAdminAccessNotification({ userName: name || email.split('@')[0], userEmail: email, userRole: 'staff' });
+
+            return res.json({
+                success: true,
+                pending: true,
+                message: `Access Request Submitted for ${email}! An email notification has been dispatched to the HR Administrator. You will be granted access once the admin approves your account.`
+            });
+        }
+
+        // Check existing user status
+        if (user.status === 'pending') {
+            return res.status(403).json({
+                success: false,
+                pending: true,
+                message: 'Your account access request is pending approval by the HR Administrator.'
+            });
+        }
+
+        if (user.status === 'rejected') {
+            return res.status(403).json({
+                success: false,
+                message: 'Your access request was declined by the HR Administrator.'
+            });
+        }
+
+        if (avatar && !user.avatar) {
             await query('UPDATE users SET avatar = ? WHERE id = ?', [avatar, user.id]);
         }
 
         const token = jwt.sign(
-            { id: user.id, name: user.name, email: user.email, role: user.role },
+            { id: user.id, name: user.name, email: user.email, role: user.role, status: user.status },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -85,6 +162,7 @@ async function googleLogin(req, res) {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                status: user.status,
                 avatar: user.avatar || avatar
             }
         });
@@ -96,7 +174,7 @@ async function googleLogin(req, res) {
 
 async function getProfile(req, res) {
     try {
-        const user = await queryOne('SELECT id, name, email, role, avatar, created_at FROM users WHERE id = ?', [req.user.id]);
+        const user = await queryOne('SELECT id, name, email, role, status, avatar, created_at FROM users WHERE id = ?', [req.user.id]);
         if (!user) {
             return res.status(404).json({ success: false, message: 'User profile not found.' });
         }
@@ -141,7 +219,8 @@ async function updateProfile(req, res) {
                 id: userId,
                 name: name || user.name,
                 email: email || user.email,
-                role: user.role
+                role: user.role,
+                status: user.status
             }
         });
     } catch (err) {
@@ -151,6 +230,7 @@ async function updateProfile(req, res) {
 
 module.exports = {
     login,
+    register,
     googleLogin,
     getProfile,
     updateProfile

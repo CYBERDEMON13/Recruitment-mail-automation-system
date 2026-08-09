@@ -18,6 +18,7 @@ import EmailHistoryPage from './pages/EmailHistoryPage';
 import SettingsPage from './pages/SettingsPage';
 import UserProfilePage from './pages/UserProfilePage';
 import DatabaseExplorerPage from './pages/DatabaseExplorerPage';
+import UserAccessManagementPage from './pages/UserAccessManagementPage';
 
 function ProtectedRoute({ children }) {
   const { user, token, loading } = useAuth();
@@ -65,6 +66,7 @@ export default function App() {
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/profile" element={<UserProfilePage />} />
                     <Route path="/database" element={<DatabaseExplorerPage />} />
+                    <Route path="/users" element={<UserAccessManagementPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </main>

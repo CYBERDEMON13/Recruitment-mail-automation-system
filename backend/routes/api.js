@@ -15,6 +15,7 @@ const emailController = require('../controllers/emailController');
 const dashboardController = require('../controllers/dashboardController');
 const settingsController = require('../controllers/settingsController');
 const databaseController = require('../controllers/databaseController');
+const userController = require('../controllers/userController');
 
 // Multer Upload Setup
 const uploadsDir = path.join(__dirname, '../uploads/temp');
@@ -30,6 +31,7 @@ const upload = multer({ storage });
 
 // --- AUTH ROUTES ---
 router.post('/auth/login', authController.login);
+router.post('/auth/register', authController.register);
 router.post('/auth/google-login', authController.googleLogin);
 router.get('/auth/me', authenticateToken, authController.getProfile);
 router.put('/auth/profile', authenticateToken, authController.updateProfile);
@@ -72,6 +74,12 @@ router.post('/emails/retry/:logId', authenticateToken, emailController.retryFail
 router.get('/settings', authenticateToken, settingsController.getSettings);
 router.put('/settings', authenticateToken, settingsController.updateSettings);
 router.post('/settings/test-smtp', authenticateToken, settingsController.testSMTP);
+
+// --- ADMIN USER ACCESS & ROLE MANAGEMENT (STRICTLY ADMIN ONLY) ---
+router.get('/admin/users', authenticateToken, authorizeRole('admin'), userController.getUsers);
+router.put('/admin/users/:id/approve', authenticateToken, authorizeRole('admin'), userController.approveUser);
+router.put('/admin/users/:id/reject', authenticateToken, authorizeRole('admin'), userController.rejectUser);
+router.delete('/admin/users/:id', authenticateToken, authorizeRole('admin'), userController.deleteUser);
 
 // --- ADMIN DATABASE EXPLORER (STRICTLY ADMIN ONLY) ---
 router.get('/admin/database/tables', authenticateToken, authorizeRole('admin'), databaseController.getTables);
