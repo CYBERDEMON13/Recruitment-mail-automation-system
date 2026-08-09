@@ -39,8 +39,17 @@ if (dbType === 'mysql') {
     }
 
     const dbPath = process.env.SQLITE_DB_PATH || path.join(dataDir, 'recruitment.db');
-    sqliteDb = new sqlite3.Database(dbPath);
-    console.log(`[Database] Configured Persistent SQLite database at: ${dbPath}`);
+    sqliteDb = new sqlite3.Database(dbPath, (err) => {
+        if (err) {
+            console.error('[SQLite Connection Error]', err);
+        } else {
+            console.log(`[Database] Configured Persistent SQLite database at: ${dbPath}`);
+            // Enable WAL mode & foreign keys for high performance & instant disk persistence
+            sqliteDb.run('PRAGMA journal_mode = WAL;');
+            sqliteDb.run('PRAGMA synchronous = NORMAL;');
+            sqliteDb.run('PRAGMA foreign_keys = ON;');
+        }
+    });
 }
 
 /**
@@ -53,15 +62,14 @@ async function query(sql, params = []) {
     } else {
         return new Promise((resolve, reject) => {
             const trimmedSql = sql.trim().toLowerCase();
-            if (trimmedSql.startsWith('select') || trimmedSql.startsWith('pragma') || trimmedSql.startsWith('with')) {
+            if (trimmedSql.startsWith('select') || trimmedSql.startsWith('pragma') || trimmedSql.startsWith('with') || trimmedSql.startsWith('show')) {
                 sqliteDb.all(sql, params, (err, rows) => {
                     if (err) return reject(err);
-                    resolve(rows);
+                    resolve(rows || []);
                 });
             } else {
                 sqliteDb.run(sql, params, function (err) {
                     if (err) return reject(err);
-                    // Return insertId or changes structure similar to MySQL
                     resolve({
                         insertId: this.lastID,
                         affectedRows: this.changes
