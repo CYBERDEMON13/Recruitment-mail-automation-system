@@ -1,0 +1,14 @@
+{
+  "name": "recruitment-email-automation",
+  "version": "1.0.0",
+  "description": "Recruitment Email Automation System",
+  "scripts": {
+    "build": "npm run install:all && npm run build:frontend",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "cd backend && node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

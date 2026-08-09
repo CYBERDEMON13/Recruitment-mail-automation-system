@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: recruitment-email-automation
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_TYPE
+        value: sqlite
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_SECURE
+        value: false
+      - key: SENDER_EMAIL
+        value: your_email@gmail.com
+      - key: SMTP_USER
+        value: your_email@gmail.com
+      - key: SMTP_PASS
+        sync: false
