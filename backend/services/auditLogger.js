@@ -1,7 +1,7 @@
 const { query } = require('../config/database');
 
 /**
- * Log structured security activity into the activity_logs table
+ * Log structured security activity into the activity_logs table with IST Kolkata Time
  * @param {Object} req - Express Request object (optional)
  * @param {Object} options
  * @param {string} options.action - Short descriptor (e.g. 'LOGIN_SUCCESS', 'LOGIN_FAILED')
@@ -37,10 +37,13 @@ async function logActivity(req, options = {}) {
 
         const detailsString = typeof details === 'object' ? JSON.stringify(details) : (details || '');
 
+        // Formatted timestamp explicitly in IST (Asia/Kolkata)
+        const istTimestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false }).replace(',', '');
+
         await query(
-            `INSERT INTO activity_logs (user_id, user_email, action, severity, ip_address, user_agent, details)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [effectiveUserId, effectiveEmail, action, severity, ipAddress, userAgent, detailsString]
+            `INSERT INTO activity_logs (user_id, user_email, action, severity, ip_address, user_agent, details, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [effectiveUserId, effectiveEmail, action, severity, ipAddress, userAgent, detailsString, istTimestamp]
         );
     } catch (err) {
         console.error('[Audit Logger Error]', err.message);

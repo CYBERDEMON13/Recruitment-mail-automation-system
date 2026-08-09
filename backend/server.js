@@ -1,3 +1,5 @@
+process.env.TZ = 'Asia/Kolkata';
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -29,7 +31,12 @@ app.use('/api', apiRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', service: 'Recruitment Email Automation Backend', timestamp: new Date() });
+    res.json({
+        status: 'ok',
+        service: 'Recruitment Email Automation Backend',
+        timezone: 'Asia/Kolkata (IST)',
+        timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+    });
 });
 
 // Serve Frontend Static Build in Production / Render
@@ -57,7 +64,7 @@ async function startServer() {
     await initDb();
     app.listen(PORT, () => {
         console.log(`====================================================`);
-        console.log(` recruitment Email Automation API Server Running`);
+        console.log(` recruitment Email Automation API Server Running (IST - Asia/Kolkata)`);
         console.log(` URL: http://localhost:${PORT}`);
         console.log(` Health Check: http://localhost:${PORT}/health`);
         console.log(`====================================================`);
