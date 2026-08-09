@@ -45,6 +45,55 @@ async function login(req, res) {
     }
 }
 
+async function googleLogin(req, res) {
+    try {
+        const { email, name, avatar, googleId } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ success: false, message: 'Google account email is required.' });
+        }
+
+        // Check if user already exists by email
+        let user = await queryOne('SELECT * FROM users WHERE email = ?', [email]);
+
+        if (!user) {
+            // Auto-create HR user account for Google Sign-In
+            const dummyPassword = await bcrypt.hash(`google_${Date.now()}_${Math.random()}`, 10);
+            const insertRes = await query(
+                'INSERT INTO users (name, email, password, role, avatar) VALUES (?, ?, ?, ?, ?)',
+                [name || email.split('@')[0], email, dummyPassword, 'admin', avatar || null]
+            );
+            user = await queryOne('SELECT * FROM users WHERE id = ?', [insertRes.insertId]);
+            console.log(`[Google Auth] Created new user account via Google Sign-In: ${email}`);
+        } else if (avatar && !user.avatar) {
+            // Update avatar if missing
+            await query('UPDATE users SET avatar = ? WHERE id = ?', [avatar, user.id]);
+        }
+
+        const token = jwt.sign(
+            { id: user.id, name: user.name, email: user.email, role: user.role },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        return res.json({
+            success: true,
+            message: 'Google Sign-In successful',
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                avatar: user.avatar || avatar
+            }
+        });
+    } catch (err) {
+        console.error('[Google Auth Error]', err);
+        return res.status(500).json({ success: false, message: 'Server error during Google login: ' + err.message });
+    }
+}
+
 async function getProfile(req, res) {
     try {
         const user = await queryOne('SELECT id, name, email, role, avatar, created_at FROM users WHERE id = ?', [req.user.id]);
@@ -102,6 +151,7 @@ async function updateProfile(req, res) {
 
 module.exports = {
     login,
+    googleLogin,
     getProfile,
     updateProfile
 };

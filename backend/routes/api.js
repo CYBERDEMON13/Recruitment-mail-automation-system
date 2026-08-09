@@ -29,6 +29,7 @@ const upload = multer({ storage });
 
 // --- AUTH ROUTES ---
 router.post('/auth/login', authController.login);
+router.post('/auth/google-login', authController.googleLogin);
 router.get('/auth/me', authenticateToken, authController.getProfile);
 router.put('/auth/profile', authenticateToken, authController.updateProfile);
 

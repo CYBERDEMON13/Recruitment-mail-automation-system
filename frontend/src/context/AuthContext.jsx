@@ -55,6 +55,19 @@ export function AuthProvider({ children }) {
     return res.data;
   };
 
+  const googleLogin = async (googlePayload) => {
+    const res = await axios.post('/api/auth/google-login', googlePayload);
+    if (res.data.success) {
+      const { token, user } = res.data;
+      setToken(token);
+      setUser(user);
+      localStorage.setItem('hr_token', token);
+      localStorage.setItem('hr_user', JSON.stringify(user));
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+    return res.data;
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -73,7 +86,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, theme, toggleTheme, updateUser }}>
+    <AuthContext.Provider value={{ user, token, loading, login, googleLogin, logout, theme, toggleTheme, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
