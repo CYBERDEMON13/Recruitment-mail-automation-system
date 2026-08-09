@@ -50,7 +50,7 @@ A complete full-stack **Recruitment Email Automation System** designed for HR de
    - HR Admin interface to configure SMTP host, port, security (STARTTLS/SSL), sender name/email, and credentials.
    - Sensitive password masking (`********`) in frontend.
    - Built-in **"Test SMTP Connection"** button with real-time feedback.
-   - Default fallback to Nodemailer Ethereal test accounts when no SMTP server is configured.
+   - Support for **Resend / Brevo Cloud HTTPS API (Port 443)** for zero-block deployment on Render cloud servers.
 
 ---
 
@@ -60,10 +60,11 @@ A complete full-stack **Recruitment Email Automation System** designed for HR de
 - **Backend**: Node.js, Express.js REST API, JWT Authentication, bcryptjs password hashing, Multer file upload.
 - **Document Generation**: PDFKit (PDF rendering engine).
 - **Excel & Spreadsheet**: ExcelJS.
-- **Email Delivery**: Nodemailer (SMTP protocol & attachments).
+- **Email Delivery**: Nodemailer (SMTP protocol) & Resend / Brevo (HTTPS API Port 443).
 - **Database**:
-  - **SQLite (Default Zero-Config)**: Auto-creates `data/recruitment.db` on startup for instant execution without local database server dependencies.
-  - **MySQL Supported**: Full `schema.sql` database script provided. Set `DB_TYPE=mysql` in `.env` to connect to a live MySQL instance.
+  - **SQLite (Default Zero-Config)**: Auto-creates `data/recruitment.db` on startup for instant execution.
+  - **Render Persistent Storage**: Mounts `/var/data` persistent disk on Render cloud deployments.
+  - **MySQL Supported**: Full `schema.sql` database script provided.
 
 ---
 
@@ -78,7 +79,7 @@ recruitment-email-automation/
 │   ├── controllers/          # Auth, Candidate, Document, Email, Template, Settings, Dashboard
 │   ├── middleware/           # Auth JWT verification
 │   ├── routes/               # Express REST API routes
-│   ├── services/             # PDFKit generator, Nodemailer automation, ExcelJS processor
+│   ├── services/             # PDFKit generator, Nodemailer & HTTPS API automation, ExcelJS processor
 │   ├── uploads/              # Generated PDFs & temp upload files
 │   ├── server.js             # Main backend server entry point
 │   └── package.json
@@ -94,6 +95,8 @@ recruitment-email-automation/
 │   ├── vite.config.js
 │   └── package.json
 ├── .env.example
+├── LICENSE
+├── render.yaml
 ├── schema.sql
 └── README.md
 ```
@@ -103,20 +106,13 @@ recruitment-email-automation/
 ## Quick Start & Installation
 
 ### Prerequisites
-- Node.js (v16+ recommended)
+- Node.js (v18+ recommended)
 - npm or yarn
 
 ### 1. Environment Setup
 Copy `.env.example` to `.env` in the root folder:
 ```bash
 cp .env.example .env
-```
-
-Default `.env` configuration:
-```env
-PORT=5000
-JWT_SECRET=recruitment_super_secret_jwt_key_2026
-DB_TYPE=sqlite
 ```
 
 ---
@@ -129,7 +125,7 @@ cd backend
 npm install
 npm start
 ```
-*The backend server will run on `http://localhost:5000`. On startup, it will automatically initialize the database schema and seed the default HR Admin account (`admin@hr.com` / `admin123`), 5 sample candidates, default email templates, and initial settings.*
+*The backend server will run on `http://localhost:5000`.*
 
 ---
 
@@ -145,52 +141,28 @@ npm run dev
 
 ---
 
-## Step-by-Step HR Workflow Verification
-
-1. **HR Admin Login**:
-   - Open `http://localhost:3000`.
-   - Click **"Fill Admin Credentials"** (`admin@hr.com` / `admin123`) and click **Sign In**.
-
-2. **Dashboard Overview**:
-   - View KPI metric cards for candidates, selected candidates, and email logs.
-   - Inspect recent candidate and email logs feeds.
-
-3. **Candidate Management**:
-   - Go to **Candidates** page.
-   - Click **Add Candidate** to add a new candidate, or search/filter by status.
-   - Click the **PDF Icon** on any candidate row to generate and download an official Offer Letter PDF or Certificate PDF.
-
-4. **Import Candidates from Excel**:
-   - Go to **Import Candidates** page.
-   - Click **Download Excel Template** to get the standard format.
-   - Select an Excel/CSV file and click **Upload & Validate File**.
-   - Review valid records vs invalid/duplicate email warnings, then click **Confirm & Import**.
-
-5. **Document Studio**:
-   - Go to **Document Studio**.
-   - Select candidate and document type (Offer Letter / Certificate).
-   - Click **Generate PDF Document** to inspect live preview and download.
-
-6. **Email Templates**:
-   - Go to **Email Templates**.
-   - Customize template subject and body text using click-to-insert placeholder tags (`{{CandidateName}}`, `{{JoiningDate}}`, `{{Salary}}`).
-
-7. **Bulk Email Automation**:
-   - Go to **Email Composer** (or select candidates from Candidates page and click **Send Email**).
-   - Select candidates, pick template, choose **Auto-Generate & Attach Offer Letter PDF**.
-   - Click **Preview Email & Confirm Dispatch**, review resolved previews, and click **Confirm & Send Emails Now**.
-
-8. **Email History & Retry**:
-   - Go to **Email History**.
-   - Filter by status (`Sent`, `Failed`). Click **Eye Icon** to inspect email contents or click **Retry Icon** to re-send failed emails.
-
-9. **SMTP Settings & Testing**:
-   - Go to **Settings**.
-   - Configure SMTP host/port/credentials or click **Test SMTP Connection** to verify mail server connectivity.
-
----
-
 ## Default Credentials
 - **Role**: HR Administrator
 - **Email**: `admin@hr.com`
 - **Password**: `admin123`
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE) - see the [LICENSE](LICENSE) file for full details.
+
+```text
+MIT License
+
+Copyright (c) 2026 CYBERDEMON13
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so.
+```
+
+Developed with ❤️ by [CYBERDEMON13](https://github.com/CYBERDEMON13).
