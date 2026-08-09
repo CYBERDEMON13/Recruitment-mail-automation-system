@@ -1,4 +1,5 @@
 const { query, queryOne } = require('../config/database');
+const { logActivity } = require('../services/auditLogger');
 
 /**
  * GET /api/admin/soc/overview
@@ -10,9 +11,9 @@ async function getSocOverview(req, res) {
         const totalLogsRes = await queryOne('SELECT COUNT(*) as count FROM activity_logs');
         const totalLogs = totalLogsRes ? (totalLogsRes.count || totalLogsRes['COUNT(*)']) : 0;
 
-        // Security Alerts Count (Failed Logins + 403 Forbidden attempts)
+        // Security Alerts Count (Failed Logins + 403 Forbidden attempts + Screenshots)
         const securityAlertsRes = await queryOne(
-            "SELECT COUNT(*) as count FROM activity_logs WHERE severity IN ('danger', 'security') OR action LIKE '%FAILED%' OR action LIKE '%UNAUTHORIZED%'"
+            "SELECT COUNT(*) as count FROM activity_logs WHERE severity IN ('danger', 'security') OR action LIKE '%FAILED%' OR action LIKE '%UNAUTHORIZED%' OR action LIKE '%SCREENSHOT%'"
         );
         const securityAlerts = securityAlertsRes ? (securityAlertsRes.count || securityAlertsRes['COUNT(*)']) : 0;
 
@@ -29,7 +30,7 @@ async function getSocOverview(req, res) {
         const totalApprovedUsers = totalApprovedUsersRes ? (totalApprovedUsersRes.count || totalApprovedUsersRes['COUNT(*)']) : 0;
 
         // Today's Activity Count
-        const todayLogsRes = await queryOne("SELECT COUNT(*) as count FROM activity_logs WHERE date(created_at) = date('now') OR created_at LIKE ? ", [`${new Date().toISOString().split('T')[0]}%`]);
+        const todayLogsRes = await queryOne("SELECT COUNT(*) as count FROM activity_logs WHERE date(created_at) = date('now') OR created_at LIKE ?", [`${new Date().toISOString().split('T')[0]}%`]);
         const todayLogs = todayLogsRes ? (todayLogsRes.count || todayLogsRes['COUNT(*)']) : 0;
 
         // Recent High-Priority Alerts with location
@@ -49,10 +50,10 @@ async function getSocOverview(req, res) {
                 totalApprovedUsers,
                 hardeningFeatures: [
                     { name: 'Role RBAC Isolation', status: 'Active (Strict Admin Enforced)' },
-                    { name: 'SQLite WAL Journaling', status: 'Active (Persistent Sync)' },
+                    { name: 'Anti-Screenshot & Recording Guard', status: 'Active (Non-Admin Blocked & Logged)' },
+                    { name: 'Threat Geo-Location Tracking', status: 'Active (Chennai, India / Client Resolution)' },
                     { name: 'Rate Limiting Guard', status: 'Active (Brute-Force Shield)' },
-                    { name: 'HTTP Security Headers', status: 'Active (CSP, HSTS, X-Frame)' },
-                    { name: 'Threat Geo-Location Tracking', status: 'Active (Chennai, India / Client Resolution)' }
+                    { name: 'HTTP Security Headers', status: 'Active (CSP, HSTS, X-Frame)' }
                 ],
                 recentAlerts
             }
@@ -150,8 +151,33 @@ async function exportSocLogs(req, res) {
     }
 }
 
+/**
+ * POST /api/audit/security-event
+ * Logs Client-side Security Violation Event (e.g. Screenshot, Snipping Tool, Screen Recording)
+ */
+async function logSecurityEvent(req, res) {
+    try {
+        const { eventType, details, location } = req.body;
+        const action = eventType || 'SCREENSHOT_ATTEMPT_BLOCKED';
+
+        await logActivity(req, {
+            action,
+            severity: 'security',
+            user_email: req.user?.email || 'non-admin-user',
+            user_id: req.user?.id || null,
+            location: location || req.headers['x-user-location'] || 'Chennai, TN, India',
+            details: details || 'Non-admin screenshot or screen recording violation attempt intercepted.'
+        });
+
+        return res.json({ success: true, message: 'Security violation logged to SOC successfully.' });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: 'Failed to record security event: ' + err.message });
+    }
+}
+
 module.exports = {
     getSocOverview,
     getSocLogs,
-    exportSocLogs
+    exportSocLogs,
+    logSecurityEvent
 };

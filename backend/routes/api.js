@@ -80,6 +80,9 @@ router.get('/settings', authenticateToken, settingsController.getSettings);
 router.put('/settings', authenticateToken, settingsController.updateSettings);
 router.post('/settings/test-smtp', authenticateToken, settingsController.testSMTP);
 
+// --- SECURITY AUDIT BEACON ROUTE ---
+router.post('/audit/security-event', authenticateToken, socController.logSecurityEvent);
+
 // --- ADMIN USER ACCESS & ROLE MANAGEMENT (STRICTLY ADMIN ONLY) ---
 router.get('/admin/users', authenticateToken, authorizeRole('admin'), userController.getUsers);
 router.put('/admin/users/:id/approve', authenticateToken, authorizeRole('admin'), userController.approveUser);

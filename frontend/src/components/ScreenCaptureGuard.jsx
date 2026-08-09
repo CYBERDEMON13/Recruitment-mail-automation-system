@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { ShieldAlert, EyeOff, Lock } from 'lucide-react';
 
@@ -22,7 +23,7 @@ export default function ScreenCaptureGuard({ children }) {
       if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
         e.preventDefault();
         e.stopPropagation();
-        triggerSecurityAlert('PrintScreen Key Blocked: Screenshot capture is prohibited for non-admin accounts.');
+        triggerSecurityAlert('PrintScreen Key Blocked: Screenshot capture is prohibited for non-admin accounts.', 'SCREENSHOT_ATTEMPT_BLOCKED');
         // Clear clipboard
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText('CONFIDENTIAL CONTENT — SCREENSHOT PROHIBITED').catch(() => {});
@@ -33,21 +34,21 @@ export default function ScreenCaptureGuard({ children }) {
       // Intercept Ctrl+P / Cmd+P (Print)
       if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
         e.preventDefault();
-        triggerSecurityAlert('Print Function Blocked: Document printing is restricted.');
+        triggerSecurityAlert('Print Function Blocked: Document printing is restricted.', 'PRINT_ATTEMPT_BLOCKED');
         return false;
       }
 
       // Intercept Ctrl+S / Cmd+S (Save Web Page)
       if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
-        triggerSecurityAlert('Page Save Restricted: Saving application source is prohibited.');
+        triggerSecurityAlert('Page Save Restricted: Saving application source is prohibited.', 'SAVE_PAGE_ATTEMPT_BLOCKED');
         return false;
       }
 
       // Intercept Win+Shift+S or Snipping Tool hotkeys
       if (e.shiftKey && (e.metaKey || e.key === 'S' || e.key === 's')) {
         e.preventDefault();
-        triggerSecurityAlert('Screen Snipping Tool Blocked.');
+        triggerSecurityAlert('Screen Snipping Tool Blocked.', 'SNIPPING_TOOL_ATTEMPT_BLOCKED');
         return false;
       }
     };
@@ -75,7 +76,7 @@ export default function ScreenCaptureGuard({ children }) {
     if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
       originalGetDisplayMedia = navigator.mediaDevices.getDisplayMedia;
       navigator.mediaDevices.getDisplayMedia = function () {
-        triggerSecurityAlert('Screen Recording Blocked: Web Screen Capture API is restricted for non-admin roles.');
+        triggerSecurityAlert('Screen Recording Blocked: Web Screen Capture API is restricted for non-admin roles.', 'SCREEN_RECORDING_ATTEMPT_BLOCKED');
         return Promise.reject(new DOMException('Screen recording is prohibited for non-admin users.', 'NotAllowedError'));
       };
     }
@@ -84,6 +85,7 @@ export default function ScreenCaptureGuard({ children }) {
     window.addEventListener('keyup', (e) => {
       if (e.key === 'PrintScreen') {
         setBlurred(true);
+        triggerSecurityAlert('PrintScreen Released: Screenshot attempt detected & logged.', 'SCREENSHOT_ATTEMPT_BLOCKED');
         setTimeout(() => setBlurred(false), 2000);
       }
     });
@@ -103,9 +105,17 @@ export default function ScreenCaptureGuard({ children }) {
     };
   }, [isAdmin]);
 
-  const triggerSecurityAlert = (msg) => {
+  const triggerSecurityAlert = (msg, eventType = 'SCREENSHOT_ATTEMPT_BLOCKED') => {
     setWarningMessage(msg);
     setBlurred(true);
+
+    // Send Security Violation Audit Beacon to backend SOC logger
+    axios.post('/api/audit/security-event', {
+      eventType,
+      details: `${msg} (View Path: ${window.location.pathname})`,
+      location: 'Chennai, TN, India'
+    }).catch(() => {});
+
     setTimeout(() => {
       setWarningMessage('');
       setBlurred(false);
@@ -127,7 +137,7 @@ export default function ScreenCaptureGuard({ children }) {
       }}
       onContextMenu={(e) => {
         e.preventDefault();
-        triggerSecurityAlert('Right-Click Context Menu Restricted for non-admin users.');
+        triggerSecurityAlert('Right-Click Context Menu Restricted for non-admin users.', 'RIGHT_CLICK_RESTRICTED');
       }}
     >
       {/* Background Page Content */}
