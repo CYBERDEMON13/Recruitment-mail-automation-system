@@ -5,6 +5,7 @@ import { useAuth } from './context/AuthContext';
 // Components & Layout
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
+import ScreenCaptureGuard from './components/ScreenCaptureGuard';
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -59,29 +60,31 @@ export default function App() {
         path="/*"
         element={
           <ProtectedRoute>
-            <div className="app-container">
-              <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-              <div className="main-content">
-                <Navbar />
-                <main className="page-body">
-                  <Routes>
-                    <Route path="/" element={<DashboardPage />} />
-                    <Route path="/candidates" element={<CandidateManagementPage />} />
-                    <Route path="/import-candidates" element={<ImportCandidatesPage />} />
-                    <Route path="/documents" element={<DocumentGeneratorPage />} />
-                    <Route path="/templates" element={<EmailTemplatesPage />} />
-                    <Route path="/composer" element={<EmailComposerPage />} />
-                    <Route path="/email-history" element={<EmailHistoryPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/profile" element={<UserProfilePage />} />
-                    <Route path="/database" element={<AdminRoute><DatabaseExplorerPage /></AdminRoute>} />
-                    <Route path="/users" element={<AdminRoute><UserAccessManagementPage /></AdminRoute>} />
-                    <Route path="/soc-dashboard" element={<AdminRoute><SocDashboardPage /></AdminRoute>} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                </main>
+            <ScreenCaptureGuard>
+              <div className="app-container">
+                <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+                <div className="main-content">
+                  <Navbar />
+                  <main className="page-body">
+                    <Routes>
+                      <Route path="/" element={<DashboardPage />} />
+                      <Route path="/candidates" element={<CandidateManagementPage />} />
+                      <Route path="/import-candidates" element={<ImportCandidatesPage />} />
+                      <Route path="/documents" element={<DocumentGeneratorPage />} />
+                      <Route path="/templates" element={<EmailTemplatesPage />} />
+                      <Route path="/composer" element={<EmailComposerPage />} />
+                      <Route path="/email-history" element={<EmailHistoryPage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/profile" element={<UserProfilePage />} />
+                      <Route path="/database" element={<AdminRoute><DatabaseExplorerPage /></AdminRoute>} />
+                      <Route path="/users" element={<AdminRoute><UserAccessManagementPage /></AdminRoute>} />
+                      <Route path="/soc-dashboard" element={<AdminRoute><SocDashboardPage /></AdminRoute>} />
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </main>
+                </div>
               </div>
-            </div>
+            </ScreenCaptureGuard>
           </ProtectedRoute>
         }
       />
