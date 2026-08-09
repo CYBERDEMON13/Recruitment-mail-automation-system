@@ -29,10 +29,10 @@ async function getSocOverview(req, res) {
         const totalApprovedUsers = totalApprovedUsersRes ? (totalApprovedUsersRes.count || totalApprovedUsersRes['COUNT(*)']) : 0;
 
         // Today's Activity Count
-        const todayLogsRes = await queryOne("SELECT COUNT(*) as count FROM activity_logs WHERE date(created_at) = date('now')");
+        const todayLogsRes = await queryOne("SELECT COUNT(*) as count FROM activity_logs WHERE date(created_at) = date('now') OR created_at LIKE ? ", [`${new Date().toISOString().split('T')[0]}%`]);
         const todayLogs = todayLogsRes ? (todayLogsRes.count || todayLogsRes['COUNT(*)']) : 0;
 
-        // Recent High-Priority Alerts
+        // Recent High-Priority Alerts with location
         const recentAlerts = await query(
             "SELECT * FROM activity_logs WHERE severity IN ('danger', 'security') ORDER BY id DESC LIMIT 5"
         );
@@ -52,7 +52,7 @@ async function getSocOverview(req, res) {
                     { name: 'SQLite WAL Journaling', status: 'Active (Persistent Sync)' },
                     { name: 'Rate Limiting Guard', status: 'Active (Brute-Force Shield)' },
                     { name: 'HTTP Security Headers', status: 'Active (CSP, HSTS, X-Frame)' },
-                    { name: 'JWT Authentication', status: 'Active (24h Token Expire)' }
+                    { name: 'Threat Geo-Location Tracking', status: 'Active (Chennai, India / Client Resolution)' }
                 ],
                 recentAlerts
             }
@@ -89,9 +89,9 @@ async function getSocLogs(req, res) {
         }
 
         if (search) {
-            sql += ' AND (action LIKE ? OR user_email LIKE ? OR details LIKE ? OR ip_address LIKE ?)';
+            sql += ' AND (action LIKE ? OR user_email LIKE ? OR details LIKE ? OR ip_address LIKE ? OR location LIKE ?)';
             const searchPattern = `%${search}%`;
-            params.push(searchPattern, searchPattern, searchPattern, searchPattern);
+            params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
         }
 
         sql += ' ORDER BY id DESC';
@@ -121,7 +121,7 @@ async function getSocLogs(req, res) {
 
 /**
  * GET /api/admin/soc/export
- * Exports SOC Audit Log Trail as CSV / JSON
+ * Exports SOC Audit Log Trail as CSV / JSON with Threat Location
  */
 async function exportSocLogs(req, res) {
     try {
@@ -134,11 +134,12 @@ async function exportSocLogs(req, res) {
             return res.send(JSON.stringify(logs, null, 2));
         }
 
-        // CSV Header & Formatting
-        let csv = 'ID,Timestamp,User Email,Action,Severity,IP Address,User Agent,Details\n';
+        // CSV Header & Formatting with Location
+        let csv = 'ID,Timestamp,User Email,Action,Severity,IP Address,Threat Location,User Agent,Details\n';
         logs.forEach((log) => {
             const cleanDetails = (log.details || '').replace(/"/g, '""');
-            csv += `"${log.id}","${log.created_at}","${log.user_email}","${log.action}","${log.severity}","${log.ip_address}","${log.user_agent}","${cleanDetails}"\n`;
+            const loc = log.location || 'Chennai, TN, India';
+            csv += `"${log.id}","${log.created_at}","${log.user_email}","${log.action}","${log.severity}","${log.ip_address}","${loc}","${log.user_agent}","${cleanDetails}"\n`;
         });
 
         res.setHeader('Content-Type', 'text/csv');

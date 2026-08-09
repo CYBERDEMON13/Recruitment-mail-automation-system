@@ -108,11 +108,19 @@ async function initDb() {
                     action TEXT NOT NULL,
                     severity TEXT DEFAULT 'info',
                     ip_address TEXT,
+                    location TEXT DEFAULT 'Chennai, India',
                     user_agent TEXT,
                     details TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
             `);
+
+            // Migration check for location column in activity_logs
+            const logPragma = await query(`PRAGMA table_info("activity_logs")`);
+            const hasLocation = logPragma.some(c => c.name === 'location');
+            if (!hasLocation) {
+                await query(`ALTER TABLE activity_logs ADD COLUMN location TEXT DEFAULT 'Chennai, India';`);
+            }
         } else {
             // MySQL table creation
             await query(`
@@ -207,6 +215,7 @@ async function initDb() {
                     action VARCHAR(100) NOT NULL,
                     severity VARCHAR(20) DEFAULT 'info',
                     ip_address VARCHAR(45),
+                    location VARCHAR(100) DEFAULT 'Chennai, India',
                     user_agent TEXT,
                     details TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP

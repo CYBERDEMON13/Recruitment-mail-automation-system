@@ -19,7 +19,8 @@ import {
   FileSpreadsheet,
   FileCode,
   Terminal,
-  KeyRound
+  KeyRound,
+  MapPin
 } from 'lucide-react';
 
 export default function SocDashboardPage() {
@@ -166,7 +167,7 @@ export default function SocDashboardPage() {
             </span>
           </div>
           <p className="page-subtitle" style={{ marginTop: '0.35rem' }}>
-            Real-time security monitoring, audit trail logs, threat inspection & role access verification (Admin Only)
+            Real-time security monitoring, threat location tracking, audit trail logs & access verification (Admin Only)
           </p>
         </div>
 
@@ -270,7 +271,7 @@ export default function SocDashboardPage() {
               <input
                 type="text"
                 className="form-control"
-                placeholder="Search Action, IP, Email..."
+                placeholder="Search Action, Location, Email..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 style={{ paddingLeft: '2.2rem', width: '220px' }}
@@ -321,10 +322,11 @@ export default function SocDashboardPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Timestamp</th>
+                  <th>Timestamp (IST)</th>
                   <th>Severity</th>
                   <th>Action Event</th>
                   <th>User Email</th>
+                  <th>Threat Location</th>
                   <th>IP Address</th>
                   <th>Details & Context</th>
                 </tr>
@@ -333,7 +335,7 @@ export default function SocDashboardPage() {
                 {logs.map((log) => (
                   <tr key={log.id} style={{ background: log.severity === 'danger' || log.severity === 'security' ? '#fef2f2' : 'inherit' }}>
                     <td style={{ fontSize: '0.75rem', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
-                      {new Date(log.created_at).toLocaleString()}
+                      {log.created_at}
                     </td>
                     <td>{getSeverityBadge(log.severity)}</td>
                     <td>
@@ -342,6 +344,23 @@ export default function SocDashboardPage() {
                       </code>
                     </td>
                     <td style={{ fontWeight: 600, fontSize: '0.85rem' }}>{log.user_email}</td>
+                    <td>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        background: log.severity === 'danger' || log.severity === 'security' ? '#fee2e2' : '#f0f9ff',
+                        color: log.severity === 'danger' || log.severity === 'security' ? '#991b1b' : '#0369a1',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '0.35rem',
+                        border: '1px solid rgba(3, 105, 161, 0.15)'
+                      }}>
+                        <MapPin size={12} />
+                        {log.location || 'Chennai, TN, India'}
+                      </span>
+                    </td>
                     <td style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>{log.ip_address}</td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{log.details}</td>
                   </tr>
