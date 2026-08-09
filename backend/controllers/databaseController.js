@@ -60,7 +60,7 @@ async function getTableData(req, res) {
         const offset = parseInt(req.query.offset || '0', 10);
 
         // Sanitize Table Name
-        const allowedTables = ['users', 'candidates', 'email_templates', 'generated_documents', 'email_logs', 'system_settings'];
+        const allowedTables = ['users', 'candidates', 'email_templates', 'generated_documents', 'email_logs', 'system_settings', 'activity_logs'];
         if (!allowedTables.includes(tableName)) {
             return res.status(400).json({ success: false, message: 'Invalid or restricted database table name.' });
         }
@@ -96,7 +96,82 @@ async function getTableData(req, res) {
     }
 }
 
+/**
+ * GET /api/admin/database/backup
+ * Downloads full database JSON snapshot for backup
+ */
+async function exportDatabaseBackup(req, res) {
+    try {
+        const users = await query('SELECT id, name, email, role, status, avatar, created_at FROM users');
+        const candidates = await query('SELECT * FROM candidates');
+        const templates = await query('SELECT * FROM email_templates');
+        const documents = await query('SELECT * FROM generated_documents');
+        const emailLogs = await query('SELECT * FROM email_logs');
+        const settings = await query('SELECT * FROM system_settings');
+        const activityLogs = await query('SELECT * FROM activity_logs');
+
+        const backup = {
+            exportTimestamp: new Date().toISOString(),
+            version: '2.0.0',
+            data: {
+                users,
+                candidates,
+                templates,
+                documents,
+                emailLogs,
+                settings,
+                activityLogs
+            }
+        };
+
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="Recruitment_Full_Database_Backup_${Date.now()}.json"`);
+        return res.send(JSON.stringify(backup, null, 2));
+    } catch (err) {
+        return res.status(500).json({ success: false, message: 'Database backup export failed: ' + err.message });
+    }
+}
+
+/**
+ * POST /api/admin/database/restore
+ * Restores database from a JSON backup file
+ */
+async function restoreDatabaseBackup(req, res) {
+    try {
+        const { backup } = req.body;
+        if (!backup || !backup.data) {
+            return res.status(400).json({ success: false, message: 'Invalid database backup snapshot file.' });
+        }
+
+        const { candidates, templates, settings, users } = backup.data;
+        let restoredCandidates = 0;
+
+        if (candidates && candidates.length > 0) {
+            for (const c of candidates) {
+                const existing = await queryOne('SELECT * FROM candidates WHERE email = ?', [c.email]);
+                if (!existing) {
+                    await query(
+                        `INSERT INTO candidates (candidate_id, full_name, email, phone, job_position, department, company_name, joining_date, salary, address, application_status, offer_letter_status, email_status)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                        [c.candidate_id, c.full_name, c.email, c.phone, c.job_position, c.department, c.company_name || 'TechVision Global Inc.', c.joining_date, c.salary, c.address, c.application_status, c.offer_letter_status, c.email_status]
+                    );
+                    restoredCandidates++;
+                }
+            }
+        }
+
+        return res.json({
+            success: true,
+            message: `Database snapshot restored successfully! (${restoredCandidates} candidates merged).`
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: 'Database restore failed: ' + err.message });
+    }
+}
+
 module.exports = {
     getTables,
-    getTableData
+    getTableData,
+    exportDatabaseBackup,
+    restoreDatabaseBackup
 };

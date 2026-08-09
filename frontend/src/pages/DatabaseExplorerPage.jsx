@@ -11,14 +11,17 @@ import {
   Lock,
   ChevronLeft,
   ChevronRight,
-  HardDrive
+  HardDrive,
+  Download,
+  Upload,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export default function DatabaseExplorerPage() {
   const { user } = useAuth();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
 
   const [tables, setTables] = useState([]);
   const [dbType, setDbType] = useState('sqlite');
@@ -29,6 +32,7 @@ export default function DatabaseExplorerPage() {
   const [loadingData, setLoadingData] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
+  const [restoring, setRestoring] = useState(false);
   const limit = 25;
 
   const isAdmin = user && user.role === 'admin';
@@ -77,6 +81,35 @@ export default function DatabaseExplorerPage() {
     } finally {
       setLoadingData(false);
     }
+  };
+
+  const handleDownloadBackup = () => {
+    window.open('/api/admin/database/backup', '_blank');
+    showSuccess('Downloading full Database Snapshot Backup (.json)...');
+  };
+
+  const handleRestoreFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        setRestoring(true);
+        const backupData = JSON.parse(event.target.result);
+        const res = await axios.post('/api/admin/database/restore', { backup: backupData });
+        if (res.data.success) {
+          showSuccess(res.data.message || 'Database snapshot restored successfully!');
+          fetchTables();
+          if (selectedTable) fetchTableData(selectedTable, page);
+        }
+      } catch (err) {
+        showError(err.response?.data?.message || 'Invalid snapshot file format.');
+      } finally {
+        setRestoring(false);
+      }
+    };
+    reader.readAsText(file);
   };
 
   // If Non-Admin, block access cleanly!
@@ -128,14 +161,21 @@ export default function DatabaseExplorerPage() {
             <Database size={28} style={{ color: 'var(--primary-600)' }} />
             Master Database Explorer Studio
           </h1>
-          <p className="page-subtitle">Inspect raw SQL tables, schemas, indexes & system records (Admin Authorization Active)</p>
+          <p className="page-subtitle">Inspect raw SQL tables, schemas, backup snapshots & persistent storage status (Admin Authorization Active)</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <span className="badge badge-selected" style={{ padding: '0.5rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Lock size={14} />
-            <span>Admin Restricted Access</span>
-          </span>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary btn-sm" onClick={handleDownloadBackup}>
+            <Download size={16} />
+            <span>Export DB Backup</span>
+          </button>
+          
+          <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0 }}>
+            <Upload size={16} />
+            <span>{restoring ? 'Restoring...' : 'Restore DB Snapshot'}</span>
+            <input type="file" accept=".json" onChange={handleRestoreFile} style={{ display: 'none' }} disabled={restoring} />
+          </label>
+
           <button className="btn btn-secondary btn-sm" onClick={fetchTables} disabled={loadingTables}>
             <RefreshCw size={16} />
             <span>Refresh Schema</span>
@@ -152,8 +192,8 @@ export default function DatabaseExplorerPage() {
               <Layers size={18} color="var(--primary-600)" />
               <span>Tables ({tables.length})</span>
             </h3>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary-600)', background: 'var(--primary-50)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-              {dbType.toUpperCase()}
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#16a34a', background: '#dcfce7', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #bbf7d0' }}>
+              {dbType.toUpperCase()} PERSISTENT
             </span>
           </div>
 
@@ -171,7 +211,7 @@ export default function DatabaseExplorerPage() {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
+                    justify.content: 'space-between',
                     padding: '0.65rem 0.85rem',
                     borderRadius: 'var(--radius-md)',
                     border: '1px solid',

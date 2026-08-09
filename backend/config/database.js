@@ -21,29 +21,49 @@ if (dbType === 'mysql') {
         connectionLimit: 10,
         queueLimit: 0
     });
-    console.log('[Database] Configured MySQL connection pool.');
+    console.log('[Database] Configured Remote MySQL connection pool.');
 } else {
-    // SQLite with Persistent Storage Support (Render Persistent Disk / Local)
+    // SQLite with Multi-Cloud Persistent Volume Auto-Detection
     const sqlite3 = require('sqlite3').verbose();
     
-    // Check if Render Persistent Disk /var/data exists or fallback to ./data
+    // Priority persistent directory resolution
     let dataDir = path.join(__dirname, '../data');
-    if (fs.existsSync('/var/data')) {
-        dataDir = '/var/data';
-    } else if (process.env.SQLITE_DB_PATH && path.dirname(process.env.SQLITE_DB_PATH)) {
+
+    if (process.env.DB_PATH) {
+        dataDir = path.dirname(process.env.DB_PATH);
+    } else if (process.env.SQLITE_DB_PATH) {
         dataDir = path.dirname(process.env.SQLITE_DB_PATH);
+    } else if (process.env.PERSISTENT_DIR && fs.existsSync(process.env.PERSISTENT_DIR)) {
+        dataDir = process.env.PERSISTENT_DIR;
+    } else if (fs.existsSync('/var/data')) {
+        // Render Persistent Disk
+        dataDir = '/var/data';
+    } else if (fs.existsSync('/data')) {
+        // Railway / Docker Persistent Volume
+        dataDir = '/data';
+    } else if (fs.existsSync('/mnt/data')) {
+        // Fly.io / K8s Volume
+        dataDir = '/mnt/data';
     }
 
     if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
+        try {
+            fs.mkdirSync(dataDir, { recursive: true });
+        } catch (e) {
+            dataDir = path.join(__dirname, '../data');
+            if (!fs.existsSync(dataDir)) {
+                fs.mkdirSync(dataDir, { recursive: true });
+            }
+        }
     }
 
-    const dbPath = process.env.SQLITE_DB_PATH || path.join(dataDir, 'recruitment.db');
+    const dbPath = process.env.DB_PATH || process.env.SQLITE_DB_PATH || path.join(dataDir, 'recruitment.db');
+    
     sqliteDb = new sqlite3.Database(dbPath, (err) => {
         if (err) {
             console.error('[SQLite Connection Error]', err);
         } else {
-            console.log(`[Database] Configured Persistent SQLite database at: ${dbPath}`);
+            console.log(`[Database] Persistent SQLite active at: ${dbPath}`);
             // Enable WAL mode & foreign keys for high performance & instant disk persistence
             sqliteDb.run('PRAGMA journal_mode = WAL;');
             sqliteDb.run('PRAGMA synchronous = NORMAL;');

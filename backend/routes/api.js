@@ -89,9 +89,11 @@ router.put('/admin/users/:id/approve', authenticateToken, authorizeRole('admin')
 router.put('/admin/users/:id/reject', authenticateToken, authorizeRole('admin'), userController.rejectUser);
 router.delete('/admin/users/:id', authenticateToken, authorizeRole('admin'), userController.deleteUser);
 
-// --- ADMIN DATABASE EXPLORER (STRICTLY ADMIN ONLY) ---
+// --- ADMIN DATABASE EXPLORER & BACKUP/RESTORE (STRICTLY ADMIN ONLY) ---
 router.get('/admin/database/tables', authenticateToken, authorizeRole('admin'), databaseController.getTables);
 router.get('/admin/database/tables/:tableName', authenticateToken, authorizeRole('admin'), databaseController.getTableData);
+router.get('/admin/database/backup', authenticateToken, authorizeRole('admin'), databaseController.exportDatabaseBackup);
+router.post('/admin/database/restore', authenticateToken, authorizeRole('admin'), databaseController.restoreDatabaseBackup);
 
 // --- ADMIN SOC SECURITY CENTER & AUDIT LOGS (STRICTLY ADMIN ONLY) ---
 router.get('/admin/soc/overview', authenticateToken, authorizeRole('admin'), socController.getSocOverview);
