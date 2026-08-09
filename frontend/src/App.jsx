@@ -17,6 +17,7 @@ import EmailComposerPage from './pages/EmailComposerPage';
 import EmailHistoryPage from './pages/EmailHistoryPage';
 import SettingsPage from './pages/SettingsPage';
 import UserProfilePage from './pages/UserProfilePage';
+import DatabaseExplorerPage from './pages/DatabaseExplorerPage';
 
 function ProtectedRoute({ children }) {
   const { user, token, loading } = useAuth();
@@ -39,7 +40,6 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   const [collapsed, setCollapsed] = useState(false);
-  const { token } = useAuth();
 
   return (
     <Routes>
@@ -64,6 +64,7 @@ export default function App() {
                     <Route path="/email-history" element={<EmailHistoryPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/profile" element={<UserProfilePage />} />
+                    <Route path="/database" element={<DatabaseExplorerPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </main>

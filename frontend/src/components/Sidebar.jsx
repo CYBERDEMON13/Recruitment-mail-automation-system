@@ -10,7 +10,7 @@ import {
   Send, 
   History, 
   Settings, 
-  User, 
+  Database,
   LogOut,
   Sparkles,
   ChevronLeft,
@@ -29,6 +29,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
     { label: 'Email Templates', icon: Mail, path: '/templates' },
     { label: 'Email Composer', icon: Send, path: '/composer' },
     { label: 'Email History', icon: History, path: '/email-history' },
+    { label: 'Database Explorer', icon: Database, path: '/database' },
     { label: 'Settings', icon: Settings, path: '/settings' },
   ];
 

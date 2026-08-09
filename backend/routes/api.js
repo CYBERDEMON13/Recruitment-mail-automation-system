@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, authorizeRole } = require('../middleware/auth');
 
 // Controllers
 const authController = require('../controllers/authController');
@@ -14,6 +14,7 @@ const templateController = require('../controllers/templateController');
 const emailController = require('../controllers/emailController');
 const dashboardController = require('../controllers/dashboardController');
 const settingsController = require('../controllers/settingsController');
+const databaseController = require('../controllers/databaseController');
 
 // Multer Upload Setup
 const uploadsDir = path.join(__dirname, '../uploads/temp');
@@ -71,5 +72,9 @@ router.post('/emails/retry/:logId', authenticateToken, emailController.retryFail
 router.get('/settings', authenticateToken, settingsController.getSettings);
 router.put('/settings', authenticateToken, settingsController.updateSettings);
 router.post('/settings/test-smtp', authenticateToken, settingsController.testSMTP);
+
+// --- ADMIN DATABASE EXPLORER (STRICTLY ADMIN ONLY) ---
+router.get('/admin/database/tables', authenticateToken, authorizeRole('admin'), databaseController.getTables);
+router.get('/admin/database/tables/:tableName', authenticateToken, authorizeRole('admin'), databaseController.getTableData);
 
 module.exports = router;
