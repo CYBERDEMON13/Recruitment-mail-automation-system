@@ -5,6 +5,7 @@ const fs = require('fs');
 
 /**
  * Fetch SMTP Transporter dynamically from DB settings or process.env
+ * Configured for maximum compatibility on local & Cloud hosts like Render.
  */
 async function getTransporter() {
     const settingsRows = await query('SELECT * FROM system_settings');
@@ -15,7 +16,7 @@ async function getTransporter() {
 
     const host = settings.smtp_host || process.env.SMTP_HOST || 'smtp.ethereal.email';
     const port = parseInt(settings.smtp_port || process.env.SMTP_PORT || '587', 10);
-    const secure = (settings.smtp_secure || process.env.SMTP_SECURE || 'false') === 'true';
+    const secure = (settings.smtp_secure || process.env.SMTP_SECURE || 'false') === 'true' || port === 465;
     const user = settings.smtp_user || process.env.SMTP_USER || '';
     const pass = settings.smtp_pass || process.env.SMTP_PASS || '';
 
@@ -35,7 +36,8 @@ async function getTransporter() {
                 auth: {
                     user: testAccount.user,
                     pass: testAccount.pass
-                }
+                },
+                family: 4
             }),
             senderEmail: settings.sender_email || testAccount.user,
             senderName: settings.sender_name || 'HR Recruitment Team',
@@ -43,13 +45,26 @@ async function getTransporter() {
         };
     }
 
+    // Gmail Service or Custom Host Transport with Cloud IPv4 Enforcement
     const transportOptions = {
         host,
         port,
         secure,
         auth: { user, pass },
-        tls: { rejectUnauthorized: false }
+        tls: { 
+            rejectUnauthorized: false,
+            ciphers: 'SSLv3'
+        },
+        family: 4, // Force IPv4 to prevent Cloud container IPv6 connection timeouts
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000
     };
+
+    if (host.includes('gmail.com')) {
+        // Additional Gmail optimization for cloud hosting
+        transportOptions.service = 'gmail';
+    }
 
     const transporter = nodemailer.createTransport(transportOptions);
     return {
@@ -201,7 +216,7 @@ async function sendPersonalizedEmail({ candidateId, templateId, customSubject, c
 async function testSMTPConfig(config = {}) {
     const host = config.smtp_host || process.env.SMTP_HOST || 'smtp.ethereal.email';
     const port = parseInt(config.smtp_port || process.env.SMTP_PORT || '587', 10);
-    const secure = (config.smtp_secure || 'false') === 'true';
+    const secure = (config.smtp_secure || 'false') === 'true' || port === 465;
     const user = config.smtp_user || process.env.SMTP_USER || '';
     const pass = config.smtp_pass || process.env.SMTP_PASS || '';
 
@@ -209,13 +224,26 @@ async function testSMTPConfig(config = {}) {
         throw new Error('Please enter both SMTP Username and Password/App Password to test real email sending.');
     }
 
-    const transporter = nodemailer.createTransport({
+    const transportOptions = {
         host,
         port,
         secure,
         auth: { user, pass },
-        tls: { rejectUnauthorized: false }
-    });
+        tls: { 
+            rejectUnauthorized: false,
+            ciphers: 'SSLv3'
+        },
+        family: 4,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000
+    };
+
+    if (host.includes('gmail.com')) {
+        transportOptions.service = 'gmail';
+    }
+
+    const transporter = nodemailer.createTransport(transportOptions);
 
     try {
         await transporter.verify();
@@ -223,7 +251,7 @@ async function testSMTPConfig(config = {}) {
     } catch (err) {
         let hint = '';
         if (host.includes('gmail')) {
-            hint = ' For Gmail: Ensure 2-Step Verification is ON and use a 16-character Gmail App Password (not your regular Gmail password).';
+            hint = ' For Gmail on Cloud hosts: Ensure 2-Step Verification is ON, use 16-char App Password, and try Port 465 (SSL) if Port 587 is blocked by your cloud provider.';
         }
         throw new Error(`SMTP Connection Failed: ${err.message}.${hint}`);
     }
