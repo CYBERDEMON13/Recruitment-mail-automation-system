@@ -8,9 +8,13 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const initDb = require('./config/initDb');
 const apiRoutes = require('./routes/api');
+const { applySecurityHeaders } = require('./middleware/securityMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Apply Global Security Headers Middleware
+app.use(applySecurityHeaders);
 
 // Enable CORS & Body Parsing
 app.use(cors());

@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { query, queryOne } = require('../config/database');
 const { JWT_SECRET } = require('../middleware/auth');
 const { sendAdminAccessNotification } = require('../services/emailService');
+const { logActivity } = require('../services/auditLogger');
 
 async function login(req, res) {
     try {
@@ -14,16 +15,36 @@ async function login(req, res) {
 
         const user = await queryOne('SELECT * FROM users WHERE email = ?', [email]);
         if (!user) {
+            logActivity(req, {
+                action: 'LOGIN_FAILED',
+                severity: 'danger',
+                user_email: email,
+                details: 'Authentication failed: User account does not exist'
+            });
             return res.status(401).json({ success: false, message: 'Invalid credentials. User not found.' });
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
+            logActivity(req, {
+                action: 'LOGIN_FAILED',
+                severity: 'danger',
+                user_email: email,
+                user_id: user.id,
+                details: 'Authentication failed: Incorrect password'
+            });
             return res.status(401).json({ success: false, message: 'Invalid credentials. Incorrect password.' });
         }
 
         // Check user approval status
         if (user.status === 'pending') {
+            logActivity(req, {
+                action: 'LOGIN_BLOCKED_PENDING',
+                severity: 'warning',
+                user_email: email,
+                user_id: user.id,
+                details: 'Login blocked: Account pending Admin approval'
+            });
             return res.status(403).json({
                 success: false,
                 pending: true,
@@ -32,6 +53,13 @@ async function login(req, res) {
         }
 
         if (user.status === 'rejected') {
+            logActivity(req, {
+                action: 'LOGIN_BLOCKED_REJECTED',
+                severity: 'danger',
+                user_email: email,
+                user_id: user.id,
+                details: 'Login blocked: Access request was rejected by Administrator'
+            });
             return res.status(403).json({
                 success: false,
                 message: 'Your access request was declined by the HR Administrator.'
@@ -43,6 +71,14 @@ async function login(req, res) {
             JWT_SECRET,
             { expiresIn: '24h' }
         );
+
+        logActivity(req, {
+            action: 'LOGIN_SUCCESS',
+            severity: 'info',
+            user_email: user.email,
+            user_id: user.id,
+            details: `User logged in successfully with role '${user.role}'`
+        });
 
         return res.json({
             success: true,
@@ -77,10 +113,18 @@ async function register(req, res) {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        await query(
+        const result = await query(
             'INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)',
             [name, email, hashedPassword, 'staff', 'pending']
         );
+
+        logActivity(req, {
+            action: 'ACCESS_REQUESTED',
+            severity: 'warning',
+            user_email: email,
+            user_id: result.insertId,
+            details: `New access request registered by ${name}`
+        });
 
         // Send Email Notification to Admin
         sendAdminAccessNotification({ userName: name, userEmail: email, userRole: 'staff' });
@@ -117,6 +161,14 @@ async function googleLogin(req, res) {
             user = await queryOne('SELECT * FROM users WHERE id = ?', [insertRes.insertId]);
             console.log(`[Google Auth] Created new user access request for Google account: ${email}`);
 
+            logActivity(req, {
+                action: 'GOOGLE_ACCESS_REQUESTED',
+                severity: 'warning',
+                user_email: email,
+                user_id: user.id,
+                details: `New Google access request submitted by ${name || email}`
+            });
+
             // Dispatch notification email to Administrator
             sendAdminAccessNotification({ userName: name || email.split('@')[0], userEmail: email, userRole: 'staff' });
 
@@ -129,6 +181,13 @@ async function googleLogin(req, res) {
 
         // Check existing user status
         if (user.status === 'pending') {
+            logActivity(req, {
+                action: 'GOOGLE_LOGIN_BLOCKED_PENDING',
+                severity: 'warning',
+                user_email: email,
+                user_id: user.id,
+                details: 'Google login blocked: Pending admin approval'
+            });
             return res.status(403).json({
                 success: false,
                 pending: true,
@@ -137,6 +196,13 @@ async function googleLogin(req, res) {
         }
 
         if (user.status === 'rejected') {
+            logActivity(req, {
+                action: 'GOOGLE_LOGIN_BLOCKED_REJECTED',
+                severity: 'danger',
+                user_email: email,
+                user_id: user.id,
+                details: 'Google login blocked: Access request rejected'
+            });
             return res.status(403).json({
                 success: false,
                 message: 'Your access request was declined by the HR Administrator.'
@@ -152,6 +218,14 @@ async function googleLogin(req, res) {
             JWT_SECRET,
             { expiresIn: '24h' }
         );
+
+        logActivity(req, {
+            action: 'GOOGLE_LOGIN_SUCCESS',
+            severity: 'info',
+            user_email: user.email,
+            user_id: user.id,
+            details: `Google login successful for ${user.email} (${user.role})`
+        });
 
         return res.json({
             success: true,
@@ -211,6 +285,14 @@ async function updateProfile(req, res) {
             'UPDATE users SET name = ?, email = ?, password = ? WHERE id = ?',
             [name || user.name, email || user.email, updatedPassword, userId]
         );
+
+        logActivity(req, {
+            action: 'PROFILE_UPDATED',
+            severity: 'info',
+            user_email: email || user.email,
+            user_id: userId,
+            details: 'User updated profile credentials'
+        });
 
         return res.json({
             success: true,

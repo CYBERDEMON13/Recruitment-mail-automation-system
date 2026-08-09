@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { createRateLimiter } = require('../middleware/securityMiddleware');
 
 // Controllers
 const authController = require('../controllers/authController');
@@ -16,6 +17,7 @@ const dashboardController = require('../controllers/dashboardController');
 const settingsController = require('../controllers/settingsController');
 const databaseController = require('../controllers/databaseController');
 const userController = require('../controllers/userController');
+const socController = require('../controllers/socController');
 
 // Multer Upload Setup
 const uploadsDir = path.join(__dirname, '../uploads/temp');
@@ -29,10 +31,13 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Security Rate Limiters for Auth & Sensitive Operations
+const authLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 30 });
+
 // --- AUTH ROUTES ---
-router.post('/auth/login', authController.login);
-router.post('/auth/register', authController.register);
-router.post('/auth/google-login', authController.googleLogin);
+router.post('/auth/login', authLimiter, authController.login);
+router.post('/auth/register', authLimiter, authController.register);
+router.post('/auth/google-login', authLimiter, authController.googleLogin);
 router.get('/auth/me', authenticateToken, authController.getProfile);
 router.put('/auth/profile', authenticateToken, authController.updateProfile);
 
@@ -84,5 +89,10 @@ router.delete('/admin/users/:id', authenticateToken, authorizeRole('admin'), use
 // --- ADMIN DATABASE EXPLORER (STRICTLY ADMIN ONLY) ---
 router.get('/admin/database/tables', authenticateToken, authorizeRole('admin'), databaseController.getTables);
 router.get('/admin/database/tables/:tableName', authenticateToken, authorizeRole('admin'), databaseController.getTableData);
+
+// --- ADMIN SOC SECURITY CENTER & AUDIT LOGS (STRICTLY ADMIN ONLY) ---
+router.get('/admin/soc/overview', authenticateToken, authorizeRole('admin'), socController.getSocOverview);
+router.get('/admin/soc/logs', authenticateToken, authorizeRole('admin'), socController.getSocLogs);
+router.get('/admin/soc/export', authenticateToken, authorizeRole('admin'), socController.exportSocLogs);
 
 module.exports = router;

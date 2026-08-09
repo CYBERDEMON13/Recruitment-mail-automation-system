@@ -99,6 +99,20 @@ async function initDb() {
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
             `);
+
+            await query(`
+                CREATE TABLE IF NOT EXISTS activity_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    user_email TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    severity TEXT DEFAULT 'info',
+                    ip_address TEXT,
+                    user_agent TEXT,
+                    details TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
         } else {
             // MySQL table creation
             await query(`
@@ -182,6 +196,20 @@ async function initDb() {
                     setting_key VARCHAR(100) PRIMARY KEY,
                     setting_value TEXT,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB;
+            `);
+
+            await query(`
+                CREATE TABLE IF NOT EXISTS activity_logs (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT,
+                    user_email VARCHAR(150) NOT NULL,
+                    action VARCHAR(100) NOT NULL,
+                    severity VARCHAR(20) DEFAULT 'info',
+                    ip_address VARCHAR(45),
+                    user_agent TEXT,
+                    details TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB;
             `);
         }

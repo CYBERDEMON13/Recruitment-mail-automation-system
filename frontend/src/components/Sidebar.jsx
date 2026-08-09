@@ -12,6 +12,7 @@ import {
   Settings, 
   Database,
   UserCheck,
+  Shield,
   LogOut,
   Sparkles,
   ChevronLeft,
@@ -22,7 +23,9 @@ export default function Sidebar({ collapsed, setCollapsed }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const navItems = [
+  const isAdmin = user && user.role === 'admin';
+
+  const baseNavItems = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
     { label: 'Candidates', icon: Users, path: '/candidates' },
     { label: 'Import Candidates', icon: FileSpreadsheet, path: '/import-candidates' },
@@ -30,10 +33,16 @@ export default function Sidebar({ collapsed, setCollapsed }) {
     { label: 'Email Templates', icon: Mail, path: '/templates' },
     { label: 'Email Composer', icon: Send, path: '/composer' },
     { label: 'Email History', icon: History, path: '/email-history' },
-    { label: 'Access & Roles', icon: UserCheck, path: '/users' },
-    { label: 'Database Explorer', icon: Database, path: '/database' },
+  ];
+
+  const adminNavItems = [
+    { label: 'SOC Security Center', icon: Shield, path: '/soc-dashboard', adminOnly: true },
+    { label: 'Access & Roles', icon: UserCheck, path: '/users', adminOnly: true },
+    { label: 'Database Explorer', icon: Database, path: '/database', adminOnly: true },
     { label: 'Settings', icon: Settings, path: '/settings' },
   ];
+
+  const navItems = isAdmin ? [...baseNavItems, ...adminNavItems] : [...baseNavItems, { label: 'Settings', icon: Settings, path: '/settings' }];
 
   const handleLogout = () => {
     logout();
@@ -132,7 +141,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                   gap: '0.85rem',
                   padding: collapsed ? '0.75rem' : '0.75rem 1rem',
                   borderRadius: '10px',
-                  color: isActive ? '#ffffff' : '#94a3b8',
+                  color: isActive ? '#ffffff' : (item.adminOnly ? '#60a5fa' : '#94a3b8'),
                   background: isActive ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(29, 78, 216, 0.15) 100%)' : 'transparent',
                   border: isActive ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid transparent',
                   textDecoration: 'none',
@@ -144,7 +153,12 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                 title={collapsed ? item.label : undefined}
               >
                 <Icon size={20} style={{ flexShrink: 0 }} />
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    {item.label}
+                    {item.adminOnly && <span style={{ fontSize: '0.65rem', background: '#1e3a8a', color: '#93c5fd', padding: '0.1rem 0.35rem', borderRadius: '0.25rem', fontWeight: 700 }}>ADMIN</span>}
+                  </span>
+                )}
               </NavLink>
             );
           })}

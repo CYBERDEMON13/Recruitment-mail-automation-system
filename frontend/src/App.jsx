@@ -19,6 +19,7 @@ import SettingsPage from './pages/SettingsPage';
 import UserProfilePage from './pages/UserProfilePage';
 import DatabaseExplorerPage from './pages/DatabaseExplorerPage';
 import UserAccessManagementPage from './pages/UserAccessManagementPage';
+import SocDashboardPage from './pages/SocDashboardPage';
 
 function ProtectedRoute({ children }) {
   const { user, token, loading } = useAuth();
@@ -36,6 +37,14 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  return children;
+}
+
+function AdminRoute({ children }) {
+  const { user } = useAuth();
+  if (user?.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
   return children;
 }
 
@@ -65,8 +74,9 @@ export default function App() {
                     <Route path="/email-history" element={<EmailHistoryPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/profile" element={<UserProfilePage />} />
-                    <Route path="/database" element={<DatabaseExplorerPage />} />
-                    <Route path="/users" element={<UserAccessManagementPage />} />
+                    <Route path="/database" element={<AdminRoute><DatabaseExplorerPage /></AdminRoute>} />
+                    <Route path="/users" element={<AdminRoute><UserAccessManagementPage /></AdminRoute>} />
+                    <Route path="/soc-dashboard" element={<AdminRoute><SocDashboardPage /></AdminRoute>} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </main>

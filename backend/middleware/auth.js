@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { logActivity } = require('../services/auditLogger');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'recruitment_super_secret_jwt_key_2026';
 
@@ -22,7 +23,16 @@ function authenticateToken(req, res, next) {
 function authorizeRole(...roles) {
     return (req, res, next) => {
         if (!req.user || !roles.includes(req.user.role)) {
-            return res.status(403).json({ success: false, message: 'Unauthorized. Higher privilege required.' });
+            // Log security violation attempt to SOC activity log
+            logActivity(req, {
+                action: 'UNAUTHORIZED_ACCESS_ATTEMPT',
+                severity: 'security',
+                user_email: req.user ? req.user.email : 'unauthenticated',
+                user_id: req.user ? req.user.id : null,
+                details: `Bypass attempt on Admin restricted route: ${req.originalUrl}`
+            });
+
+            return res.status(403).json({ success: false, message: 'Forbidden. Higher privilege (Administrator) required.' });
         }
         next();
     };
