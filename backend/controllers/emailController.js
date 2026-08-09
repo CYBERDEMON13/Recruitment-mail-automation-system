@@ -81,7 +81,7 @@ async function previewEmails(req, res) {
                     jobPosition: candidate.job_position,
                     subject: resolvedSubject,
                     body: resolvedBody,
-                    attachment: effectiveAttach || 'None'
+                    attachment: effectiveAttach || (candidate.application_status === 'Selected' ? 'offer_letter' : 'None')
                 });
             }
         }
@@ -142,28 +142,43 @@ async function sendEmails(req, res) {
                 }
             }
 
+            // --- AUTOMATIC PDF GENERATION & ATTACHMENT ENGINE ---
             let attachmentPath = null;
 
-            if (effectiveAttach === 'offer_letter') {
-                try {
-                    const pdfRes = await generateOfferLetterPDF(candidate);
-                    attachmentPath = pdfRes.relativePath;
-                    await query("INSERT INTO generated_documents (candidate_id, document_type, filename, filepath) VALUES (?, 'offer_letter', ?, ?)",
-                        [candidate.id, pdfRes.filename, pdfRes.relativePath]
-                    );
-                    await query("UPDATE candidates SET offer_letter_status = 'Generated' WHERE id = ?", [candidate.id]);
-                } catch (docErr) {
-                    console.error('[Doc Gen Attachment Error]', docErr);
+            if (effectiveAttach === 'offer_letter' || (candidate.application_status === 'Selected' && effectiveAttach !== 'none')) {
+                // First check if document was already generated
+                const existingDoc = await queryOne("SELECT * FROM generated_documents WHERE candidate_id = ? AND document_type = 'offer_letter' ORDER BY id DESC LIMIT 1", [candidate.id]);
+                if (existingDoc && existingDoc.filepath) {
+                    attachmentPath = existingDoc.filepath;
+                } else {
+                    // Generate new executive Offer Letter PDF on the fly!
+                    try {
+                        const pdfRes = await generateOfferLetterPDF(candidate);
+                        attachmentPath = pdfRes.relativePath;
+                        await query("INSERT INTO generated_documents (candidate_id, document_type, filename, filepath) VALUES (?, 'offer_letter', ?, ?)",
+                            [candidate.id, pdfRes.filename, pdfRes.relativePath]
+                        );
+                        await query("UPDATE candidates SET offer_letter_status = 'Generated' WHERE id = ?", [candidate.id]);
+                        console.log(`[Auto Attachment Engine] Automatically generated & attached Offer Letter PDF for candidate ${candidate.full_name}`);
+                    } catch (docErr) {
+                        console.error('[Doc Gen Attachment Error]', docErr);
+                    }
                 }
             } else if (effectiveAttach === 'certificate') {
-                try {
-                    const pdfRes = await generateCertificatePDF(candidate);
-                    attachmentPath = pdfRes.relativePath;
-                    await query("INSERT INTO generated_documents (candidate_id, document_type, filename, filepath) VALUES (?, 'certificate', ?, ?)",
-                        [candidate.id, pdfRes.filename, pdfRes.relativePath]
-                    );
-                } catch (docErr) {
-                    console.error('[Doc Gen Attachment Error]', docErr);
+                const existingDoc = await queryOne("SELECT * FROM generated_documents WHERE candidate_id = ? AND document_type = 'certificate' ORDER BY id DESC LIMIT 1", [candidate.id]);
+                if (existingDoc && existingDoc.filepath) {
+                    attachmentPath = existingDoc.filepath;
+                } else {
+                    try {
+                        const pdfRes = await generateCertificatePDF(candidate);
+                        attachmentPath = pdfRes.relativePath;
+                        await query("INSERT INTO generated_documents (candidate_id, document_type, filename, filepath) VALUES (?, 'certificate', ?, ?)",
+                            [candidate.id, pdfRes.filename, pdfRes.relativePath]
+                        );
+                        console.log(`[Auto Attachment Engine] Automatically generated & attached Certificate PDF for candidate ${candidate.full_name}`);
+                    } catch (docErr) {
+                        console.error('[Doc Gen Attachment Error]', docErr);
+                    }
                 }
             }
 
@@ -186,7 +201,7 @@ async function sendEmails(req, res) {
 
         return res.json({
             success: true,
-            message: `Email automation complete. Sent ${successCount} emails successfully based on candidate statuses. ${failureCount} failed.`,
+            message: `Email automation complete. Sent ${successCount} emails successfully with automatic PDF attachments. ${failureCount} failed.`,
             summary: {
                 total: candidateIds.length,
                 successCount,
@@ -271,12 +286,23 @@ async function retryFailedEmail(req, res) {
             return res.status(404).json({ success: false, message: 'Associated candidate no longer exists.' });
         }
 
+        // Check if attachment path missing, auto-generate if selected
+        let attachmentPath = log.attachment_path;
+        if (!attachmentPath && candidate.application_status === 'Selected') {
+            try {
+                const pdfRes = await generateOfferLetterPDF(candidate);
+                attachmentPath = pdfRes.relativePath;
+            } catch (e) {
+                console.error('[Retry Auto Doc Error]', e);
+            }
+        }
+
         const sendRes = await sendPersonalizedEmail({
             candidateId: candidate.id,
             templateId: log.template_id,
             customSubject: log.subject,
             customBody: log.body,
-            attachmentPath: log.attachment_path
+            attachmentPath
         });
 
         if (sendRes.success) {
