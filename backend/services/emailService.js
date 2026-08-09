@@ -217,8 +217,16 @@ async function testSMTPConfig(config = {}) {
         tls: { rejectUnauthorized: false }
     });
 
-    await transporter.verify();
-    return { success: true, message: `Successfully authenticated with SMTP server ${host}:${port} as ${user}` };
+    try {
+        await transporter.verify();
+        return { success: true, message: `Successfully authenticated with SMTP server ${host}:${port} as ${user}` };
+    } catch (err) {
+        let hint = '';
+        if (host.includes('gmail')) {
+            hint = ' For Gmail: Ensure 2-Step Verification is ON and use a 16-character Gmail App Password (not your regular Gmail password).';
+        }
+        throw new Error(`SMTP Connection Failed: ${err.message}.${hint}`);
+    }
 }
 
 module.exports = {
