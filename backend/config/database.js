@@ -23,15 +23,24 @@ if (dbType === 'mysql') {
     });
     console.log('[Database] Configured MySQL connection pool.');
 } else {
-    // Default to SQLite
+    // SQLite with Persistent Storage Support (Render Persistent Disk / Local)
     const sqlite3 = require('sqlite3').verbose();
-    const dataDir = path.join(__dirname, '../data');
+    
+    // Check if Render Persistent Disk /var/data exists or fallback to ./data
+    let dataDir = path.join(__dirname, '../data');
+    if (fs.existsSync('/var/data')) {
+        dataDir = '/var/data';
+    } else if (process.env.SQLITE_DB_PATH && path.dirname(process.env.SQLITE_DB_PATH)) {
+        dataDir = path.dirname(process.env.SQLITE_DB_PATH);
+    }
+
     if (!fs.existsSync(dataDir)) {
         fs.mkdirSync(dataDir, { recursive: true });
     }
-    const dbPath = path.join(dataDir, 'recruitment.db');
+
+    const dbPath = process.env.SQLITE_DB_PATH || path.join(dataDir, 'recruitment.db');
     sqliteDb = new sqlite3.Database(dbPath);
-    console.log(`[Database] Configured SQLite database at ${dbPath}`);
+    console.log(`[Database] Configured Persistent SQLite database at: ${dbPath}`);
 }
 
 /**

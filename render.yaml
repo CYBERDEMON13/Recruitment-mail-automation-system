@@ -6,6 +6,10 @@ services:
     plan: free
     buildCommand: npm run build
     startCommand: npm start
+    disk:
+      name: recruitment-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
@@ -13,6 +17,8 @@ services:
         generateValue: true
       - key: DB_TYPE
         value: sqlite
+      - key: SQLITE_DB_PATH
+        value: /var/data/recruitment.db
       - key: SMTP_HOST
         value: api.resend.com
       - key: SMTP_PORT
