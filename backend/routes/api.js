@@ -54,6 +54,7 @@ router.post('/candidates', authenticateToken, candidateController.createCandidat
 router.get('/candidates/:id', authenticateToken, candidateController.getCandidateById);
 router.put('/candidates/:id', authenticateToken, candidateController.updateCandidate);
 router.post('/candidates/bulk-delete', authenticateToken, candidateController.bulkDeleteCandidates);
+router.post('/candidates/:id/restore', authenticateToken, candidateController.restoreCandidate);
 router.delete('/candidates/:id', authenticateToken, candidateController.deleteCandidate);
 
 // --- DOCUMENT GENERATOR ROUTES ---

@@ -29,8 +29,8 @@ async function parseAndValidateCandidateExcel(filePath) {
         throw new Error('Spreadsheet worksheet is empty or invalid.');
     }
 
-    // Get existing emails from DB for duplicate checking
-    const existingCandidates = await query('SELECT email, candidate_id FROM candidates');
+    // Get existing active emails from DB for duplicate checking
+    const existingCandidates = await query('SELECT email, candidate_id FROM candidates WHERE (is_deleted = 0 OR is_deleted IS NULL)');
     const existingEmails = new Set(existingCandidates.map(c => String(c.email).toLowerCase()));
     const existingIds = new Set(existingCandidates.map(c => String(c.candidate_id).toLowerCase()));
 

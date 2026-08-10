@@ -4,10 +4,19 @@ const fs = require('fs');
 
 async function getCandidates(req, res) {
     try {
-        const { search, status, department, position, page = 1, limit = 50 } = req.query;
+        const { search, status, department, position, view = 'active', page = 1, limit = 50 } = req.query;
 
         let sql = 'SELECT * FROM candidates WHERE 1=1';
         const params = [];
+
+        if (view === 'deleted') {
+            sql += ' AND is_deleted = 1';
+        } else if (view === 'all') {
+            // Include active & soft-deleted
+        } else {
+            // Default: active candidates only
+            sql += ' AND (is_deleted = 0 OR is_deleted IS NULL)';
+        }
 
         if (search) {
             sql += ' AND (full_name LIKE ? OR email LIKE ? OR candidate_id LIKE ? OR job_position LIKE ?)';
@@ -189,8 +198,9 @@ async function deleteCandidate(req, res) {
             return res.status(404).json({ success: false, message: 'Candidate not found.' });
         }
 
-        await query('DELETE FROM candidates WHERE id = ?', [id]);
-        return res.json({ success: true, message: `Candidate ${candidate.full_name} deleted successfully.` });
+        // Soft delete: keep record in database, update is_deleted flag
+        await query('UPDATE candidates SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
+        return res.json({ success: true, message: `Candidate ${candidate.full_name} moved to Trash (data safely preserved in database).` });
     } catch (err) {
         return res.status(500).json({ success: false, message: 'Delete failed: ' + err.message });
     }
@@ -204,15 +214,31 @@ async function bulkDeleteCandidates(req, res) {
         }
 
         const placeholders = candidateIds.map(() => '?').join(',');
-        await query(`DELETE FROM candidates WHERE id IN (${placeholders})`, candidateIds);
+        // Soft delete: keep records in database, update is_deleted flag
+        await query(`UPDATE candidates SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id IN (${placeholders})`, candidateIds);
 
         return res.json({ 
             success: true, 
-            message: `Successfully deleted ${candidateIds.length} candidate(s).`,
+            message: `Successfully moved ${candidateIds.length} candidate(s) to Trash (data safely preserved in database).`,
             deletedCount: candidateIds.length 
         });
     } catch (err) {
         return res.status(500).json({ success: false, message: 'Bulk delete failed: ' + err.message });
+    }
+}
+
+async function restoreCandidate(req, res) {
+    try {
+        const { id } = req.params;
+        const candidate = await queryOne('SELECT * FROM candidates WHERE id = ?', [id]);
+        if (!candidate) {
+            return res.status(404).json({ success: false, message: 'Candidate not found.' });
+        }
+
+        await query('UPDATE candidates SET is_deleted = 0, deleted_at = NULL WHERE id = ?', [id]);
+        return res.json({ success: true, message: `Candidate ${candidate.full_name} restored successfully.` });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: 'Restore failed: ' + err.message });
     }
 }
 
@@ -325,6 +351,7 @@ module.exports = {
     updateCandidate,
     deleteCandidate,
     bulkDeleteCandidates,
+    restoreCandidate,
     previewExcelImport,
     confirmExcelImport,
     downloadImportTemplate,

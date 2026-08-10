@@ -16,7 +16,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   FileSpreadsheet,
-  Award
+  Award,
+  RotateCcw
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
@@ -31,6 +32,7 @@ export default function CandidateManagementPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
+  const [viewFilter, setViewFilter] = useState('active'); // 'active', 'deleted', 'all'
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
 
@@ -63,7 +65,7 @@ export default function CandidateManagementPage() {
 
   useEffect(() => {
     fetchCandidates();
-  }, [page, search, statusFilter, deptFilter]);
+  }, [page, search, statusFilter, deptFilter, viewFilter]);
 
   const fetchCandidates = async () => {
     setLoading(true);
@@ -74,7 +76,8 @@ export default function CandidateManagementPage() {
           limit: 10,
           search,
           status: statusFilter,
-          department: deptFilter
+          department: deptFilter,
+          view: viewFilter
         }
       });
 
@@ -188,13 +191,25 @@ export default function CandidateManagementPage() {
     try {
       const res = await axios.post('/api/candidates/bulk-delete', { candidateIds: selectedIds });
       if (res.data.success) {
-        showSuccess(`Successfully deleted ${res.data.deletedCount || selectedIds.length} candidate(s).`);
+        showSuccess(`Successfully moved ${res.data.deletedCount || selectedIds.length} candidate(s) to Trash.`);
         setSelectedIds([]);
         setShowBulkDeleteModal(false);
         fetchCandidates();
       }
     } catch (err) {
       showError(err.response?.data?.message || 'Bulk delete failed.');
+    }
+  };
+
+  const handleRestoreCandidate = async (id, name) => {
+    try {
+      const res = await axios.post(`/api/candidates/${id}/restore`);
+      if (res.data.success) {
+        showSuccess(`Candidate ${name || ''} restored successfully.`);
+        fetchCandidates();
+      }
+    } catch (err) {
+      showError('Failed to restore candidate.');
     }
   };
 
@@ -307,6 +322,17 @@ export default function CandidateManagementPage() {
         <div className="filter-group">
           <select 
             className="form-select" 
+            style={{ width: '180px', fontWeight: 600, borderColor: viewFilter === 'deleted' ? '#fca5a5' : undefined }}
+            value={viewFilter}
+            onChange={(e) => { setViewFilter(e.target.value); setPage(1); }}
+          >
+            <option value="active">Active Candidates</option>
+            <option value="deleted">Trash / Archived</option>
+            <option value="all">All Records (Inc. Deleted)</option>
+          </select>
+
+          <select 
+            className="form-select" 
             style={{ width: '170px' }}
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -390,6 +416,11 @@ export default function CandidateManagementPage() {
                       <span className={`badge badge-${c.application_status.toLowerCase().replace(/\s+/g, '-')}`}>
                         {c.application_status}
                       </span>
+                      {c.is_deleted === 1 && (
+                        <span className="badge" style={{ marginLeft: '0.35rem', background: '#fee2e2', color: '#991b1b', fontSize: '0.7rem' }}>
+                          Trash (In DB)
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span className={`badge badge-${c.offer_letter_status.toLowerCase().replace(/\s+/g, '-')}`}>
@@ -422,14 +453,25 @@ export default function CandidateManagementPage() {
                           <Edit3 size={16} />
                         </button>
 
-                        <button
-                          className="btn btn-secondary btn-icon"
-                          title="Delete Candidate"
-                          onClick={() => setDeletingId(c.id)}
-                          style={{ color: '#ef4444' }}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {c.is_deleted ? (
+                          <button
+                            className="btn btn-secondary btn-icon"
+                            title="Restore Candidate (Preserved in DB)"
+                            onClick={() => handleRestoreCandidate(c.id, c.full_name)}
+                            style={{ color: '#10b981', borderColor: '#a7f3d0', background: 'rgba(16, 185, 129, 0.08)' }}
+                          >
+                            <RotateCcw size={16} />
+                          </button>
+                        ) : (
+                          <button
+                            className="btn btn-secondary btn-icon"
+                            title="Move Candidate to Trash"
+                            onClick={() => setDeletingId(c.id)}
+                            style={{ color: '#ef4444' }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

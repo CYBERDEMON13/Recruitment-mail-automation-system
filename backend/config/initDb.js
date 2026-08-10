@@ -30,6 +30,19 @@ async function initDb() {
                 await query(`ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'approved';`);
             }
 
+            // Migration for candidates: add is_deleted and deleted_at columns
+            try {
+                const candPragma = await query(`PRAGMA table_info("candidates")`);
+                const hasIsDeleted = candPragma.some(c => c.name === 'is_deleted');
+                if (!hasIsDeleted) {
+                    await query(`ALTER TABLE candidates ADD COLUMN is_deleted INTEGER DEFAULT 0;`);
+                }
+                const hasDeletedAt = candPragma.some(c => c.name === 'deleted_at');
+                if (!hasDeletedAt) {
+                    await query(`ALTER TABLE candidates ADD COLUMN deleted_at DATETIME DEFAULT NULL;`);
+                }
+            } catch (e) {}
+
             await query(`
                 CREATE TABLE IF NOT EXISTS candidates (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,6 +59,8 @@ async function initDb() {
                     application_status TEXT DEFAULT 'Pending',
                     offer_letter_status TEXT DEFAULT 'Not Generated',
                     email_status TEXT DEFAULT 'Pending',
+                    is_deleted INTEGER DEFAULT 0,
+                    deleted_at DATETIME DEFAULT NULL,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
@@ -153,6 +168,8 @@ async function initDb() {
                     application_status VARCHAR(30) DEFAULT 'Pending',
                     offer_letter_status VARCHAR(30) DEFAULT 'Not Generated',
                     email_status VARCHAR(30) DEFAULT 'Pending',
+                    is_deleted INT DEFAULT 0,
+                    deleted_at DATETIME DEFAULT NULL,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB;
