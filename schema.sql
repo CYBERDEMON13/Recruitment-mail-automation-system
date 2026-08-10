@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS candidates (
     id INT AUTO_INCREMENT PRIMARY KEY,
     candidate_id VARCHAR(50) UNIQUE NOT NULL,
     full_name VARCHAR(120) NOT NULL,
-    email VARCHAR(150) UNIQUE NOT NULL,
+    email VARCHAR(150) NOT NULL,
     phone VARCHAR(30),
     job_position VARCHAR(100) NOT NULL,
     department VARCHAR(100) NOT NULL,

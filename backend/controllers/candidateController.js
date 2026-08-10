@@ -104,11 +104,6 @@ async function createCandidate(req, res) {
             return res.status(400).json({ success: false, message: 'Invalid email address syntax.' });
         }
 
-        const existingEmail = await queryOne('SELECT id FROM candidates WHERE email = ?', [email]);
-        if (existingEmail) {
-            return res.status(400).json({ success: false, message: `Candidate with email "${email}" already exists.` });
-        }
-
         const safeCandidateId = candidate_id || `CAND-${Math.floor(1000 + Math.random() * 9000)}`;
         const company = company_name || 'TechVision Global Inc.';
         const status = application_status || 'Pending';
@@ -159,10 +154,6 @@ async function updateCandidate(req, res) {
         if (email && email !== candidate.email) {
             if (!isValidEmail(email)) {
                 return res.status(400).json({ success: false, message: 'Invalid email address.' });
-            }
-            const existingEmail = await queryOne('SELECT id FROM candidates WHERE email = ? AND id != ?', [email, id]);
-            if (existingEmail) {
-                return res.status(400).json({ success: false, message: `Email "${email}" is already assigned to another candidate.` });
             }
         }
 
@@ -283,13 +274,6 @@ async function confirmExcelImport(req, res) {
 
         for (const c of candidates) {
             try {
-                // Double check email uniqueness
-                const exists = await queryOne('SELECT id FROM candidates WHERE email = ?', [c.email]);
-                if (exists) {
-                    skippedCount++;
-                    continue;
-                }
-
                 const safeId = c.candidate_id || `CAND-${Math.floor(1000 + Math.random() * 9000)}`;
 
                 await query(

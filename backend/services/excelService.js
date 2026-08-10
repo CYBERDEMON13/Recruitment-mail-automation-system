@@ -114,10 +114,6 @@ async function parseAndValidateCandidateExcel(filePath) {
             errors.push('Email is required');
         } else if (!isValidEmail(email)) {
             errors.push(`Invalid email format: "${email}"`);
-        } else if (existingEmails.has(email.toLowerCase())) {
-            errors.push(`Email already exists in system database`);
-        } else if (seenFileEmails.has(email.toLowerCase())) {
-            errors.push(`Duplicate email found within upload file`);
         }
 
         if (!jobPosition) errors.push('Job Position is required');
