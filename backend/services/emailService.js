@@ -130,17 +130,35 @@ async function sendPersonalizedEmail({ candidateId, templateId, customSubject, c
         const config = await getEmailConfig();
 
         const attachments = [];
-        if (attachmentPath) {
-            const absolutePath = path.isAbsolute(attachmentPath) 
-                ? attachmentPath 
-                : path.join(__dirname, '..', attachmentPath.replace(/^\//, ''));
+        let absolutePath = attachmentPath 
+            ? (path.isAbsolute(attachmentPath) ? attachmentPath : path.join(__dirname, '..', attachmentPath.replace(/^\//, '')))
+            : null;
 
-            if (fs.existsSync(absolutePath)) {
-                attachments.push({
-                    filename: path.basename(absolutePath),
-                    path: absolutePath
-                });
+        if (absolutePath && !fs.existsSync(absolutePath) && candidate.application_status === 'Selected') {
+            try {
+                const { generateOfferLetterPDF } = require('./pdfService');
+                const pdfRes = await generateOfferLetterPDF(candidate);
+                absolutePath = pdfRes.filepath;
+                console.log(`[Email Service Safety Net] Regenerated missing Offer Letter PDF on the fly: ${pdfRes.filepath}`);
+            } catch (pdfFailErr) {
+                console.error('[PDF Fallback Error in emailService]', pdfFailErr);
             }
+        } else if (!absolutePath && candidate.application_status === 'Selected') {
+            try {
+                const { generateOfferLetterPDF } = require('./pdfService');
+                const pdfRes = await generateOfferLetterPDF(candidate);
+                absolutePath = pdfRes.filepath;
+                console.log(`[Email Service Safety Net] Generated fresh Offer Letter PDF on the fly: ${pdfRes.filepath}`);
+            } catch (pdfFailErr) {
+                console.error('[PDF Auto-Gen Error in emailService]', pdfFailErr);
+            }
+        }
+
+        if (absolutePath && fs.existsSync(absolutePath)) {
+            attachments.push({
+                filename: path.basename(absolutePath),
+                path: absolutePath
+            });
         }
 
         let messageId = null;

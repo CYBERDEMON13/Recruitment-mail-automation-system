@@ -2,6 +2,15 @@ const { query, queryOne } = require('../config/database');
 const { sendPersonalizedEmail, replacePlaceholders } = require('../services/emailService');
 const { generateOfferLetterPDF, generateCertificatePDF } = require('../services/pdfService');
 const { generateAIEmail } = require('../services/aiService');
+const fs = require('fs');
+const path = require('path');
+
+function getAbsolutePath(relOrAbsPath) {
+    if (!relOrAbsPath) return null;
+    if (path.isAbsolute(relOrAbsPath)) return relOrAbsPath;
+    const cleanRel = relOrAbsPath.replace(/^\//, '');
+    return path.join(__dirname, '..', cleanRel);
+}
 
 async function aiGenerateEmail(req, res) {
     try {
@@ -87,8 +96,9 @@ async function previewEmails(req, res) {
                     try {
                         let existingDoc = await queryOne("SELECT * FROM generated_documents WHERE candidate_id = ? AND document_type = 'offer_letter' ORDER BY id DESC LIMIT 1", [candidate.id]);
                         let filename = existingDoc ? existingDoc.filename : null;
+                        let docFilepath = existingDoc ? getAbsolutePath(existingDoc.filepath) : null;
 
-                        if (!existingDoc) {
+                        if (!docFilepath || !fs.existsSync(docFilepath)) {
                             const pdfRes = await generateOfferLetterPDF(candidate);
                             filename = pdfRes.filename;
                             await query("INSERT INTO generated_documents (candidate_id, document_type, filename, filepath) VALUES (?, 'offer_letter', ?, ?)",
@@ -110,8 +120,9 @@ async function previewEmails(req, res) {
                     try {
                         let existingDoc = await queryOne("SELECT * FROM generated_documents WHERE candidate_id = ? AND document_type = 'certificate' ORDER BY id DESC LIMIT 1", [candidate.id]);
                         let filename = existingDoc ? existingDoc.filename : null;
+                        let docFilepath = existingDoc ? getAbsolutePath(existingDoc.filepath) : null;
 
-                        if (!existingDoc) {
+                        if (!docFilepath || !fs.existsSync(docFilepath)) {
                             const pdfRes = await generateCertificatePDF(candidate);
                             filename = pdfRes.filename;
                             await query("INSERT INTO generated_documents (candidate_id, document_type, filename, filepath) VALUES (?, 'certificate', ?, ?)",
@@ -208,36 +219,40 @@ async function sendEmails(req, res) {
             let attachmentPath = null;
 
             if (effectiveAttach === 'offer_letter' || (candidate.application_status === 'Selected' && effectiveAttach !== 'none')) {
-                // First check if document was already generated
+                // First check if document was already generated AND exists on disk
                 const existingDoc = await queryOne("SELECT * FROM generated_documents WHERE candidate_id = ? AND document_type = 'offer_letter' ORDER BY id DESC LIMIT 1", [candidate.id]);
-                if (existingDoc && existingDoc.filepath) {
-                    attachmentPath = existingDoc.filepath;
+                let docFilepath = existingDoc ? getAbsolutePath(existingDoc.filepath) : null;
+
+                if (docFilepath && fs.existsSync(docFilepath)) {
+                    attachmentPath = docFilepath;
                 } else {
                     // Generate new executive Offer Letter PDF on the fly!
                     try {
                         const pdfRes = await generateOfferLetterPDF(candidate);
-                        attachmentPath = pdfRes.relativePath;
+                        attachmentPath = pdfRes.filepath;
                         await query("INSERT INTO generated_documents (candidate_id, document_type, filename, filepath) VALUES (?, 'offer_letter', ?, ?)",
                             [candidate.id, pdfRes.filename, pdfRes.relativePath]
                         );
                         await query("UPDATE candidates SET offer_letter_status = 'Generated' WHERE id = ?", [candidate.id]);
-                        console.log(`[Auto Attachment Engine] Automatically generated & attached Offer Letter PDF for candidate ${candidate.full_name}`);
+                        console.log(`[Auto Attachment Engine] Automatically generated & attached Offer Letter PDF for candidate ${candidate.full_name} (${pdfRes.filepath})`);
                     } catch (docErr) {
                         console.error('[Doc Gen Attachment Error]', docErr);
                     }
                 }
             } else if (effectiveAttach === 'certificate') {
                 const existingDoc = await queryOne("SELECT * FROM generated_documents WHERE candidate_id = ? AND document_type = 'certificate' ORDER BY id DESC LIMIT 1", [candidate.id]);
-                if (existingDoc && existingDoc.filepath) {
-                    attachmentPath = existingDoc.filepath;
+                let docFilepath = existingDoc ? getAbsolutePath(existingDoc.filepath) : null;
+
+                if (docFilepath && fs.existsSync(docFilepath)) {
+                    attachmentPath = docFilepath;
                 } else {
                     try {
                         const pdfRes = await generateCertificatePDF(candidate);
-                        attachmentPath = pdfRes.relativePath;
+                        attachmentPath = pdfRes.filepath;
                         await query("INSERT INTO generated_documents (candidate_id, document_type, filename, filepath) VALUES (?, 'certificate', ?, ?)",
                             [candidate.id, pdfRes.filename, pdfRes.relativePath]
                         );
-                        console.log(`[Auto Attachment Engine] Automatically generated & attached Certificate PDF for candidate ${candidate.full_name}`);
+                        console.log(`[Auto Attachment Engine] Automatically generated & attached Certificate PDF for candidate ${candidate.full_name} (${pdfRes.filepath})`);
                     } catch (docErr) {
                         console.error('[Doc Gen Attachment Error]', docErr);
                     }
