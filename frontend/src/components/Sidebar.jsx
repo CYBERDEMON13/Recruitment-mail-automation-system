@@ -86,7 +86,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: '1.05rem', fontFamily: 'var(--font-heading)', letterSpacing: '-0.02em' }}>
-                Recruit<span style={{ color: '#60a5fa' }}>Flow</span>
+                Recruit<span style={{ color: '#60a5fa' }}>ify</span>
               </div>
               <div style={{ fontSize: '0.725rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 HR Automation

@@ -128,7 +128,7 @@ export default function LoginPage() {
             HR Portal Login
           </h2>
           <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginTop: '0.35rem' }}>
-            Recruitment Email & Document Automation System
+            Recruitify | Smart HR Automation & Document Studio
           </p>
         </div>
 

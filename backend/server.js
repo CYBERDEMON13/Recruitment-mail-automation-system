@@ -33,7 +33,7 @@ app.use('/api', apiRoutes);
 app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
-        service: 'Recruitment Email Automation Backend',
+        service: 'Recruitify Backend API',
         timezone: 'Asia/Kolkata (IST)',
         timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
     });

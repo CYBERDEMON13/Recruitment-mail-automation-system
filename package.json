@@ -1,7 +1,7 @@
 {
-  "name": "recruitment-email-automation",
+  "name": "recruitify",
   "version": "1.0.0",
-  "description": "Recruitment Email Automation System",
+  "description": "Recruitify - Smart HR Email Automation & Document Studio",
   "scripts": {
     "build": "npm run install:all && npm run build:frontend",
     "install:all": "cd backend && npm install --include=dev && cd ../frontend && npm install --include=dev",

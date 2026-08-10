@@ -1,7 +1,7 @@
 {
-  "name": "recruitment-email-automation-backend",
+  "name": "recruitify-backend",
   "version": "1.0.0",
-  "description": "Backend API for Recruitment Email Automation System",
+  "description": "Backend API for Recruitify - Smart HR Email Automation & Document Studio",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -1,6 +1,6 @@
-# Recruitment Email Automation System
+# Recruitify | Smart HR Automation & Document Studio
 
-A complete full-stack **Recruitment Email Automation System** designed for HR departments to streamline candidate management, generate personalized PDF Offer Letters and Certificates, customize email templates, automate bulk email sending with PDF attachments, track delivery logs, and retry failed dispatches.
+A complete full-stack **Recruitify** platform designed for HR departments to streamline candidate management, generate personalized PDF Offer Letters and Certificates, customize email templates, automate bulk email sending with PDF attachments, track delivery logs, and retry failed dispatches.
 
 ---
 
