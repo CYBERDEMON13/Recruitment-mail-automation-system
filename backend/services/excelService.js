@@ -79,7 +79,10 @@ async function parseAndValidateCandidateExcel(filePath) {
         let joiningDate = getVal(['joining_date', 'joiningdate', 'start_date', 'startdate', 'joiningdateyyyymmdd']);
         const salary = getVal(['salary', 'package', 'salary_package', 'salarypackage', 'offered_package', 'ctc', 'pay', 'compensation']);
         const address = getVal(['address', 'location']);
-        const applicationStatus = getVal(['application_status', 'applicationstatus', 'status']) || 'Pending';
+        const rawStatus = getVal(['application_status', 'applicationstatus', 'status']);
+        const validStatuses = ['Selected', 'Rejected', 'Pending', 'On Hold'];
+        const matchedStatus = validStatuses.find(s => s.toLowerCase() === String(rawStatus || '').trim().toLowerCase());
+        const applicationStatus = matchedStatus || 'Pending';
 
         // Clean & Format Joining Date
         if (joiningDate) {

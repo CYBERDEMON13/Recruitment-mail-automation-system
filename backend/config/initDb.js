@@ -237,6 +237,9 @@ async function initDb() {
             await query('UPDATE users SET role = ?, status = ? WHERE email = ?', ['admin', 'approved', 'admin@hr.com']);
         }
 
+        // Cleanup any candidate rows where application_status contains a shifted address
+        await query(`UPDATE candidates SET application_status = 'Pending' WHERE application_status NOT IN ('Selected', 'Rejected', 'Pending', 'On Hold') OR application_status LIKE '%,%' OR LENGTH(application_status) > 25;`);
+
         // Seed default Email Templates
         const templatesCount = await queryOne('SELECT COUNT(*) as count FROM email_templates');
         const count = templatesCount ? (templatesCount.count || templatesCount['COUNT(*)']) : 0;
