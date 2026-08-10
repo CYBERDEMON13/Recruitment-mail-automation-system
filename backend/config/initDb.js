@@ -305,7 +305,11 @@ async function initDb() {
             }
         }
 
-        // Seed Sample Candidates if empty
+        // Auto-restore candidates from persistent file store if available
+        const { autoRestoreCandidates, autoBackupCandidates } = require('../services/candidateBackupService');
+        await autoRestoreCandidates();
+
+        // Seed Sample Candidates if still empty
         const candidatesCount = await queryOne('SELECT COUNT(*) as count FROM candidates');
         const cCount = candidatesCount ? (candidatesCount.count || candidatesCount['COUNT(*)']) : 0;
         if (cCount === 0) {
@@ -319,6 +323,9 @@ async function initDb() {
             `);
             console.log('[Database Init] Seeded 5 sample candidates.');
         }
+
+        // Always ensure persistent snapshot is up to date
+        await autoBackupCandidates();
 
         console.log('[Database Init] Database initializations completed successfully.');
     } catch (error) {

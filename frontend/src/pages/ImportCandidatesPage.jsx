@@ -82,6 +82,11 @@ export default function ImportCandidatesPage() {
         candidates: parseData.validRecords
       });
       if (res.data.success) {
+        try {
+          const existing = JSON.parse(localStorage.getItem('recruitify_candidate_backup') || '[]');
+          const combined = [...existing, ...parseData.validRecords];
+          localStorage.setItem('recruitify_candidate_backup', JSON.stringify(combined));
+        } catch (e) {}
         showSuccess(res.data.message, 'Import Complete');
         navigate('/candidates');
       }

@@ -1,5 +1,6 @@
 const { query, queryOne } = require('../config/database');
 const { parseAndValidateCandidateExcel, generateCandidateImportTemplate, exportCandidatesToExcel, isValidEmail } = require('../services/excelService');
+const { autoBackupCandidates } = require('../services/candidateBackupService');
 const fs = require('fs');
 
 async function getCandidates(req, res) {
@@ -121,6 +122,8 @@ async function createCandidate(req, res) {
 
         const newCandidate = await queryOne('SELECT * FROM candidates WHERE id = ?', [result.insertId]);
 
+        await autoBackupCandidates();
+
         return res.status(201).json({
             success: true,
             message: 'Candidate added successfully.',
@@ -184,6 +187,7 @@ async function updateCandidate(req, res) {
         );
 
         const updatedCandidate = await queryOne('SELECT * FROM candidates WHERE id = ?', [id]);
+        await autoBackupCandidates();
         return res.json({ success: true, message: 'Candidate updated successfully.', candidate: updatedCandidate });
     } catch (err) {
         return res.status(500).json({ success: false, message: 'Update failed: ' + err.message });
@@ -200,6 +204,7 @@ async function deleteCandidate(req, res) {
 
         // Soft delete: keep record in database, update is_deleted flag
         await query('UPDATE candidates SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
+        await autoBackupCandidates();
         return res.json({ success: true, message: `Candidate ${candidate.full_name} moved to Trash (data safely preserved in database).` });
     } catch (err) {
         return res.status(500).json({ success: false, message: 'Delete failed: ' + err.message });
@@ -216,6 +221,7 @@ async function bulkDeleteCandidates(req, res) {
         const placeholders = candidateIds.map(() => '?').join(',');
         // Soft delete: keep records in database, update is_deleted flag
         await query(`UPDATE candidates SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id IN (${placeholders})`, candidateIds);
+        await autoBackupCandidates();
 
         return res.json({ 
             success: true, 
@@ -236,6 +242,7 @@ async function restoreCandidate(req, res) {
         }
 
         await query('UPDATE candidates SET is_deleted = 0, deleted_at = NULL WHERE id = ?', [id]);
+        await autoBackupCandidates();
         return res.json({ success: true, message: `Candidate ${candidate.full_name} restored successfully.` });
     } catch (err) {
         return res.status(500).json({ success: false, message: 'Restore failed: ' + err.message });
@@ -308,6 +315,8 @@ async function confirmExcelImport(req, res) {
                 skippedCount++;
             }
         }
+
+        await autoBackupCandidates();
 
         return res.json({
             success: true,

@@ -87,6 +87,27 @@ export default function CandidateManagementPage() {
         setTotalPages(res.data.totalPages);
         setDepartments(res.data.departments || []);
         setPositions(res.data.positions || []);
+
+        // Auto-sync protection: if server DB was reset on cold-start (total <= 5) but client backup exists
+        if (res.data.total <= 5 && !search && !statusFilter && !deptFilter && viewFilter === 'active') {
+          try {
+            const saved = localStorage.getItem('recruitify_candidate_backup');
+            if (saved) {
+              const backupList = JSON.parse(saved);
+              if (Array.isArray(backupList) && backupList.length > 5) {
+                axios.post('/api/candidates/import/confirm', { candidates: backupList }).then(syncRes => {
+                  if (syncRes.data.success && syncRes.data.importedCount > 0) {
+                    fetchCandidates();
+                  }
+                }).catch(() => {});
+              }
+            }
+          } catch (e) {}
+        } else if (res.data.total > 5) {
+          try {
+            localStorage.setItem('recruitify_candidate_backup', JSON.stringify(res.data.candidates));
+          } catch (e) {}
+        }
       }
     } catch (err) {
       showError('Failed to fetch candidates.');
