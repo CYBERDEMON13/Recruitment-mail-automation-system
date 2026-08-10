@@ -46,8 +46,12 @@ async function parseAndValidateCandidateExcel(filePath) {
             // Read Headers
             headerRow = row.values.map(val => String(val || '').trim());
             headerRow.forEach((colName, index) => {
-                const key = colName.toLowerCase().replace(/[^a-z0-9]/g, '_');
-                headerMap[key] = index;
+                const rawKey = colName.toLowerCase().trim();
+                const cleanKey = rawKey.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+                const alphaOnlyKey = rawKey.replace(/[^a-z0-9]/g, '');
+                headerMap[cleanKey] = index;
+                headerMap[alphaOnlyKey] = index;
+                headerMap[rawKey] = index;
             });
             return;
         }
@@ -68,14 +72,14 @@ async function parseAndValidateCandidateExcel(filePath) {
         const candidateId = getVal(['candidate_id', 'candidateid', 'id', 'emp_id']) || `CAND-${Math.floor(1000 + Math.random() * 9000)}`;
         const fullName = getVal(['full_name', 'fullname', 'name', 'candidate_name']);
         const email = getVal(['email', 'email_address', 'emailaddress']);
-        const phone = getVal(['phone', 'phone_number', 'mobile']);
+        const phone = getVal(['phone', 'phone_number', 'mobile', 'phonenumber']);
         const jobPosition = getVal(['job_position', 'jobposition', 'position', 'role', 'designation']);
         const department = getVal(['department', 'dept']);
-        const companyName = getVal(['company_name', 'company']) || 'TechVision Global Inc.';
-        let joiningDate = getVal(['joining_date', 'joiningdate', 'start_date']);
-        const salary = getVal(['salary', 'package', 'offered_package', 'ctc']);
+        const companyName = getVal(['company_name', 'company', 'companyname']) || 'TechVision Global Inc.';
+        let joiningDate = getVal(['joining_date', 'joiningdate', 'start_date', 'startdate', 'joiningdateyyyymmdd']);
+        const salary = getVal(['salary', 'package', 'salary_package', 'salarypackage', 'offered_package', 'ctc', 'pay', 'compensation']);
         const address = getVal(['address', 'location']);
-        const applicationStatus = getVal(['application_status', 'status']) || 'Pending';
+        const applicationStatus = getVal(['application_status', 'applicationstatus', 'status']) || 'Pending';
 
         // Clean & Format Joining Date
         if (joiningDate) {

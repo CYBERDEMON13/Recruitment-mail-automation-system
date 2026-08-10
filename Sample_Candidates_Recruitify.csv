@@ -1,0 +1,11 @@
+Candidate ID,Full Name,Email Address,Phone Number,Job Position,Department,Company Name,Joining Date,Salary,Address,Application Status
+CAND-1001,Alexander Wright,alexander.wright@techvision.io,+1 555-0142,Senior Full Stack Engineer,Engineering,TechVision Global Inc.,2026-09-01,$135,000 / year,"742 Evergreen Terrace, San Francisco, CA",Selected
+CAND-1002,Sophia Martinez,sophia.martinez@example.com,+1 555-0188,Product Designer (UI/UX),Design,TechVision Global Inc.,2026-09-10,$110,000 / year,"120 Market Street, Austin, TX",Selected
+CAND-1003,David Chen,david.chen@cloudnet.org,+1 555-0193,DevOps & Security Specialist,Infrastructure,TechVision Global Inc.,2026-09-15,$128,000 / year,"450 Innovation Way, Seattle, WA",Pending
+CAND-1004,Emma Watson,emma.watson@talenthr.com,+1 555-0125,Talent Acquisition Manager,Human Resources,TechVision Global Inc.,2026-09-05,$95,000 / year,"88 Madison Ave, New York, NY",Selected
+CAND-1005,Lucas Silva,lucas.silva@datamine.co,+1 555-0167,Data Analyst,Analytics,TechVision Global Inc.,2026-10-01,$88,000 / year,"303 Peachtree St, Atlanta, GA",Pending
+CAND-1006,Olivia Taylor,olivia.taylor@consulting.org,+1 555-0154,Marketing Operations Lead,Marketing,TechVision Global Inc.,2026-09-20,$102,000 / year,"150 Michigan Ave, Chicago, IL",Rejected
+CAND-1007,Liam Johnson,liam.johnson@devcorp.net,+1 555-0119,Frontend Engineer (React),Engineering,TechVision Global Inc.,2026-09-01,$118,000 / year,"55 Ocean Drive, Miami, FL",Selected
+CAND-1008,Ava Patel,ava.patel@securityops.com,+1 555-0176,Cyber Security Analyst,SOC Operations,TechVision Global Inc.,2026-10-05,$122,000 / year,"900 Boulder Blvd, Denver, CO",Pending
+CAND-1009,Noah Brown,noah.brown@enterprise.io,+1 555-0182,Sales Account Executive,Sales,TechVision Global Inc.,2026-09-12,$105,000 / year,"600 Boylston St, Boston, MA",Selected
+CAND-1010,Isabella Garcia,isabella.garcia@qa-tech.org,+1 555-0139,QA Automation Engineer,Quality Assurance,TechVision Global Inc.,2026-09-18,$92,000 / year,"222 Grand Ave, Los Angeles, CA",Rejected
