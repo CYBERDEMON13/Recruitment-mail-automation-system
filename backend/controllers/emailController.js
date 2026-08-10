@@ -48,30 +48,87 @@ async function previewEmails(req, res) {
         for (const cId of candidateIds) {
             const candidate = await queryOne('SELECT * FROM candidates WHERE id = ?', [cId]);
             if (candidate) {
-                let subjectRaw = customSubject;
-                let bodyRaw = customBody;
-                let effectiveAttach = attachDocumentType;
+                let subjectRaw = (customSubject || '').trim();
+                let bodyRaw = (customBody || '').trim();
+                let effectiveAttach = attachDocumentType || 'offer_letter';
 
-                // Smart Auto-Status Logic
-                if (autoStatusMode || templateId === 'auto_status' || (!customSubject && !customBody && !templateId)) {
+                // Prioritize user's custom body & subject if provided. Otherwise, route by candidate status.
+                if (!subjectRaw || !bodyRaw) {
                     if (candidate.application_status === 'Rejected') {
                         const tpl = rejectionTemplate || defaultTemplate;
-                        subjectRaw = tpl ? tpl.subject : `Update regarding your application for {{JobPosition}} at {{CompanyName}}`;
-                        bodyRaw = tpl ? tpl.body : `Dear {{CandidateName}},\n\nThank you for applying for the position of {{JobPosition}} at {{CompanyName}}.\n\nAfter careful consideration, we regret to inform you that we will not be moving forward with your application at this time.\n\nRegards,\nHR Department\n{{CompanyName}}`;
+                        if (!subjectRaw) subjectRaw = tpl ? tpl.subject : `Update regarding your application for {{JobPosition}} at {{CompanyName}}`;
+                        if (!bodyRaw) bodyRaw = tpl ? tpl.body : `Dear {{CandidateName}},\n\nThank you for giving us the opportunity to consider your application for the position of {{JobPosition}} at {{CompanyName}}.\n\nAfter careful consideration of all candidates, we regret to inform you that we will not be moving forward with your application at this time.\n\nWe genuinely appreciate your interest in {{CompanyName}} and wish you the best in your career journey.\n\nRegards,\nHR Recruitment Team\n{{CompanyName}}`;
                         effectiveAttach = 'none';
                     } else if (candidate.application_status === 'Selected') {
                         const tpl = offerTemplate || defaultTemplate;
-                        subjectRaw = tpl ? tpl.subject : `Congratulations! Job Offer from {{CompanyName}}`;
-                        bodyRaw = tpl ? tpl.body : `Dear {{CandidateName}},\n\nWe are pleased to offer you the position of {{JobPosition}} in the {{Department}} department.\n\nPlease find your official Offer Letter attached.\n\nRegards,\nHR Department\n{{CompanyName}}`;
-                        effectiveAttach = attachDocumentType || 'offer_letter';
+                        if (!subjectRaw) subjectRaw = tpl ? tpl.subject : `Official Job Offer: {{JobPosition}} at {{CompanyName}}`;
+                        if (!bodyRaw) bodyRaw = tpl ? tpl.body : `Dear {{CandidateName}},\n\nFollowing our recent hiring discussions, we are pleased to extend a formal offer of employment for the position of {{JobPosition}} in the {{Department}} department at {{CompanyName}}.\n\nYour offered package is {{Salary}} and your tentative joining date will be {{JoiningDate}}.\n\nPlease find your official Offer Letter PDF attached to this email. Kindly review the attached document and let us know if you have any questions.\n\nWe look forward to welcoming you to {{CompanyName}}!\n\nWarm regards,\nHR Recruitment Team\n{{CompanyName}}`;
+                        if (attachDocumentType !== 'none') {
+                            effectiveAttach = attachDocumentType || 'offer_letter';
+                        }
+                    } else if (defaultTemplate) {
+                        if (!subjectRaw) subjectRaw = defaultTemplate.subject;
+                        if (!bodyRaw) bodyRaw = defaultTemplate.body;
                     }
                 }
 
-                if (!subjectRaw && defaultTemplate) subjectRaw = defaultTemplate.subject;
-                if (!bodyRaw && defaultTemplate) bodyRaw = defaultTemplate.body;
-
                 const resolvedSubject = replacePlaceholders(subjectRaw || 'Recruitment Notice from {{CompanyName}}', candidate, companyName);
                 const resolvedBody = replacePlaceholders(bodyRaw || 'Dear {{CandidateName}},\n\nPlease contact HR for updates.', candidate, companyName);
+
+                // Check / Auto-Generate PDF Attachment Info for Live Preview
+                let attachmentInfo = {
+                    type: effectiveAttach,
+                    hasAttachment: false,
+                    filename: 'None',
+                    downloadUrl: null
+                };
+
+                if (effectiveAttach === 'offer_letter' || (candidate.application_status === 'Selected' && effectiveAttach !== 'none')) {
+                    try {
+                        let existingDoc = await queryOne("SELECT * FROM generated_documents WHERE candidate_id = ? AND document_type = 'offer_letter' ORDER BY id DESC LIMIT 1", [candidate.id]);
+                        let filename = existingDoc ? existingDoc.filename : null;
+
+                        if (!existingDoc) {
+                            const pdfRes = await generateOfferLetterPDF(candidate);
+                            filename = pdfRes.filename;
+                            await query("INSERT INTO generated_documents (candidate_id, document_type, filename, filepath) VALUES (?, 'offer_letter', ?, ?)",
+                                [candidate.id, pdfRes.filename, pdfRes.relativePath]
+                            );
+                            await query("UPDATE candidates SET offer_letter_status = 'Generated' WHERE id = ?", [candidate.id]);
+                        }
+
+                        attachmentInfo = {
+                            type: 'offer_letter',
+                            hasAttachment: true,
+                            filename: filename || `Offer_Letter_${candidate.candidate_id}.pdf`,
+                            downloadUrl: `/api/documents/download/${filename}`
+                        };
+                    } catch (pdfErr) {
+                        console.error('[Preview Offer Gen Error]', pdfErr);
+                    }
+                } else if (effectiveAttach === 'certificate') {
+                    try {
+                        let existingDoc = await queryOne("SELECT * FROM generated_documents WHERE candidate_id = ? AND document_type = 'certificate' ORDER BY id DESC LIMIT 1", [candidate.id]);
+                        let filename = existingDoc ? existingDoc.filename : null;
+
+                        if (!existingDoc) {
+                            const pdfRes = await generateCertificatePDF(candidate);
+                            filename = pdfRes.filename;
+                            await query("INSERT INTO generated_documents (candidate_id, document_type, filename, filepath) VALUES (?, 'certificate', ?, ?)",
+                                [candidate.id, pdfRes.filename, pdfRes.relativePath]
+                            );
+                        }
+
+                        attachmentInfo = {
+                            type: 'certificate',
+                            hasAttachment: true,
+                            filename: filename || `Certificate_${candidate.candidate_id}.pdf`,
+                            downloadUrl: `/api/documents/download/${filename}`
+                        };
+                    } catch (pdfErr) {
+                        console.error('[Preview Cert Gen Error]', pdfErr);
+                    }
+                }
 
                 previews.push({
                     candidateId: candidate.id,
@@ -81,7 +138,7 @@ async function previewEmails(req, res) {
                     jobPosition: candidate.job_position,
                     subject: resolvedSubject,
                     body: resolvedBody,
-                    attachment: effectiveAttach || (candidate.application_status === 'Selected' ? 'offer_letter' : 'None')
+                    attachment: attachmentInfo
                 });
             }
         }
@@ -120,25 +177,30 @@ async function sendEmails(req, res) {
             const candidate = await queryOne('SELECT * FROM candidates WHERE id = ?', [cId]);
             if (!candidate) continue;
 
-            let subjectRaw = customSubject;
-            let bodyRaw = customBody;
-            let effectiveAttach = attachDocumentType;
+            let subjectRaw = (customSubject || '').trim();
+            let bodyRaw = (customBody || '').trim();
+            let effectiveAttach = attachDocumentType || 'offer_letter';
             let effectiveTemplateId = templateId;
 
-            // Auto-Status Smart Routing
-            if (autoStatusMode || templateId === 'auto_status' || (!customSubject && !customBody && !templateId)) {
+            // Prioritize user's custom body & subject if provided. Otherwise, route by candidate status.
+            if (!subjectRaw || !bodyRaw) {
                 if (candidate.application_status === 'Rejected') {
                     const tpl = rejectionTemplate || defaultTemplate;
-                    subjectRaw = tpl ? tpl.subject : `Update regarding your application for {{JobPosition}} at {{CompanyName}}`;
-                    bodyRaw = tpl ? tpl.body : `Dear {{CandidateName}},\n\nThank you for applying. We regret to inform you that we are not moving forward.`;
+                    if (!subjectRaw) subjectRaw = tpl ? tpl.subject : `Update regarding your application for {{JobPosition}} at {{CompanyName}}`;
+                    if (!bodyRaw) bodyRaw = tpl ? tpl.body : `Dear {{CandidateName}},\n\nThank you for applying. We regret to inform you that we are not moving forward.`;
                     effectiveAttach = 'none';
                     effectiveTemplateId = tpl ? tpl.id : null;
                 } else if (candidate.application_status === 'Selected') {
                     const tpl = offerTemplate || defaultTemplate;
-                    subjectRaw = tpl ? tpl.subject : `Congratulations! Job Offer from {{CompanyName}}`;
-                    bodyRaw = tpl ? tpl.body : `Dear {{CandidateName}},\n\nWe are pleased to offer you the position of {{JobPosition}}.`;
-                    effectiveAttach = attachDocumentType || 'offer_letter';
+                    if (!subjectRaw) subjectRaw = tpl ? tpl.subject : `Official Job Offer: {{JobPosition}} at {{CompanyName}}`;
+                    if (!bodyRaw) bodyRaw = tpl ? tpl.body : `Dear {{CandidateName}},\n\nFollowing our recent hiring discussions, we are pleased to extend a formal offer of employment for the position of {{JobPosition}} in the {{Department}} department at {{CompanyName}}.\n\nYour offered package is {{Salary}} and your tentative joining date will be {{JoiningDate}}.\n\nPlease find your official Offer Letter PDF attached to this email. Kindly review the attached document and let us know if you have any questions.\n\nWe look forward to welcoming you to {{CompanyName}}!\n\nWarm regards,\nHR Recruitment Team\n{{CompanyName}}`;
+                    if (attachDocumentType !== 'none') {
+                        effectiveAttach = attachDocumentType || 'offer_letter';
+                    }
                     effectiveTemplateId = tpl ? tpl.id : null;
+                } else if (defaultTemplate) {
+                    if (!subjectRaw) subjectRaw = defaultTemplate.subject;
+                    if (!bodyRaw) bodyRaw = defaultTemplate.body;
                 }
             }
 

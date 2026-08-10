@@ -414,9 +414,39 @@ export default function EmailComposerPage() {
                       {prev.body}
                     </div>
 
-                    <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--primary-700)', fontWeight: 600 }}>
-                      Attachment: {prev.attachment !== 'None' ? `${prev.attachment.toUpperCase()} PDF` : 'None (Rejection / General Notice)'}
-                    </div>
+                    {prev.attachment && typeof prev.attachment === 'object' && prev.attachment.hasAttachment ? (
+                      <div style={{
+                        marginTop: '0.75rem',
+                        padding: '0.6rem 0.85rem',
+                        borderRadius: '8px',
+                        background: 'rgba(59, 130, 246, 0.08)',
+                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.825rem', fontWeight: 600, color: 'var(--primary-700)' }}>
+                          <Paperclip size={16} />
+                          <span>Auto-Attached PDF: <strong>{prev.attachment.filename}</strong></span>
+                        </div>
+                        {prev.attachment.downloadUrl && (
+                          <a
+                            href={prev.attachment.downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-secondary btn-sm"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', textDecoration: 'none', padding: '0.25rem 0.6rem', fontSize: '0.775rem' }}
+                          >
+                            <FileText size={14} color="var(--primary-600)" />
+                            <span>View / Download Attached PDF</span>
+                          </a>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.775rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        No document attachment required for this status notice.
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
