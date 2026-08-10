@@ -211,7 +211,7 @@ export default function DatabaseExplorerPage() {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justify.content: 'space-between',
+                    justifyContent: 'space-between',
                     padding: '0.65rem 0.85rem',
                     borderRadius: 'var(--radius-md)',
                     border: '1px solid',
