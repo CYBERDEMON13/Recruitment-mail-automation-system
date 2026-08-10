@@ -313,15 +313,29 @@ async function initDb() {
         const candidatesCount = await queryOne('SELECT COUNT(*) as count FROM candidates');
         const cCount = candidatesCount ? (candidatesCount.count || candidatesCount['COUNT(*)']) : 0;
         if (cCount === 0) {
-            await query(`
-                INSERT INTO candidates (candidate_id, full_name, email, phone, job_position, department, company_name, joining_date, salary, address, application_status, offer_letter_status, email_status) VALUES
-                ('CAND-1001', 'Alexander Wright', 'alex.wright@example.com', '+1 555-0192', 'Senior Software Engineer', 'Engineering', 'TechVision Global Inc.', '2026-09-01', '$120,000 / year', '123 Innovation Way, San Francisco, CA', 'Selected', 'Not Generated', 'Pending'),
-                ('CAND-1002', 'Sophia Chen', 'sophia.chen@example.com', '+1 555-0144', 'Product Marketing Manager', 'Marketing', 'TechVision Global Inc.', '2026-08-25', '$95,000 / year', '456 Market St, New York, NY', 'Selected', 'Not Generated', 'Pending'),
-                ('CAND-1003', 'Marcus Vance', 'marcus.vance@example.com', '+1 555-0188', 'UX/UI Designer', 'Design', 'TechVision Global Inc.', '2026-09-15', '$88,000 / year', '789 Design Blvd, Austin, TX', 'Pending', 'Not Generated', 'Pending'),
-                ('CAND-1004', 'Elena Rostova', 'elena.rostova@example.com', '+1 555-0122', 'Data Scientist', 'Analytics', 'TechVision Global Inc.', '2026-09-10', '$110,000 / year', '321 Data Lane, Seattle, WA', 'On Hold', 'Not Generated', 'Pending'),
-                ('CAND-1005', 'David Miller', 'david.miller@example.com', '+1 555-0177', 'DevOps Specialist', 'Engineering', 'TechVision Global Inc.', '2026-08-20', '$105,000 / year', '654 Cloud Ave, Chicago, IL', 'Rejected', 'Not Generated', 'Pending')
-            `);
-            console.log('[Database Init] Seeded 5 sample candidates.');
+            try {
+                const fs = require('fs');
+                const path = require('path');
+                const seedPath = path.join(__dirname, '../seeds/default_candidates.json');
+                if (fs.existsSync(seedPath)) {
+                    const seedData = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+                    for (const c of seedData) {
+                        await query(
+                            `INSERT INTO candidates 
+                            (candidate_id, full_name, email, phone, job_position, department, company_name, joining_date, salary, address, application_status, offer_letter_status, email_status)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Not Generated', 'Pending')`,
+                            [
+                                c.candidate_id, c.full_name, c.email, c.phone || '', c.job_position,
+                                c.department, c.company_name || 'TechVision Global Inc.', c.joining_date,
+                                c.salary, c.address || '', c.application_status || 'Pending'
+                            ]
+                        );
+                    }
+                    console.log(`[Database Init] Seeded ${seedData.length} default candidates from persistent JSON seed.`);
+                }
+            } catch (seedErr) {
+                console.error('[Seed Load Error]', seedErr.message);
+            }
         }
 
         // Always ensure persistent snapshot is up to date

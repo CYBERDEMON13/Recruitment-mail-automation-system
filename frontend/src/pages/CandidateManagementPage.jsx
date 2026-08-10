@@ -88,24 +88,36 @@ export default function CandidateManagementPage() {
         setDepartments(res.data.departments || []);
         setPositions(res.data.positions || []);
 
-        // Auto-sync protection: if server DB was reset on cold-start (total <= 5) but client backup exists
-        if (res.data.total <= 5 && !search && !statusFilter && !deptFilter && viewFilter === 'active') {
-          try {
-            const saved = localStorage.getItem('recruitify_candidate_backup');
-            if (saved) {
-              const backupList = JSON.parse(saved);
-              if (Array.isArray(backupList) && backupList.length > 5) {
-                axios.post('/api/candidates/import/confirm', { candidates: backupList }).then(syncRes => {
+        // Auto-sync protection: if client backup exists in browser localStorage, auto-restore missing records
+        try {
+          const saved = localStorage.getItem('recruitify_candidate_backup');
+          if (saved) {
+            const backupList = JSON.parse(saved);
+            if (Array.isArray(backupList) && backupList.length > 0) {
+              const currentEmails = new Set((res.data.candidates || []).map(c => String(c.email).toLowerCase()));
+              const missingRecords = backupList.filter(b => b.email && !currentEmails.has(String(b.email).toLowerCase()));
+              if (missingRecords.length > 0) {
+                axios.post('/api/candidates/import/confirm', { candidates: missingRecords }).then(syncRes => {
                   if (syncRes.data.success && syncRes.data.importedCount > 0) {
                     fetchCandidates();
                   }
                 }).catch(() => {});
               }
             }
-          } catch (e) {}
-        } else if (res.data.total > 5) {
+          }
+        } catch (e) {}
+
+        if (res.data.total > 0) {
           try {
-            localStorage.setItem('recruitify_candidate_backup', JSON.stringify(res.data.candidates));
+            const saved = JSON.parse(localStorage.getItem('recruitify_candidate_backup') || '[]');
+            const emailSet = new Set(saved.map(s => String(s.email).toLowerCase()));
+            const updatedBackup = [...saved];
+            (res.data.candidates || []).forEach(c => {
+              if (c.email && !emailSet.has(String(c.email).toLowerCase())) {
+                updatedBackup.push(c);
+              }
+            });
+            localStorage.setItem('recruitify_candidate_backup', JSON.stringify(updatedBackup));
           } catch (e) {}
         }
       }
