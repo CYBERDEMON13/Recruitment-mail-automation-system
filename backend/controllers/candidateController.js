@@ -196,6 +196,26 @@ async function deleteCandidate(req, res) {
     }
 }
 
+async function bulkDeleteCandidates(req, res) {
+    try {
+        const { candidateIds } = req.body;
+        if (!Array.isArray(candidateIds) || candidateIds.length === 0) {
+            return res.status(400).json({ success: false, message: 'Please select candidates to delete.' });
+        }
+
+        const placeholders = candidateIds.map(() => '?').join(',');
+        await query(`DELETE FROM candidates WHERE id IN (${placeholders})`, candidateIds);
+
+        return res.json({ 
+            success: true, 
+            message: `Successfully deleted ${candidateIds.length} candidate(s).`,
+            deletedCount: candidateIds.length 
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: 'Bulk delete failed: ' + err.message });
+    }
+}
+
 async function previewExcelImport(req, res) {
     try {
         if (!req.file) {
@@ -304,6 +324,7 @@ module.exports = {
     createCandidate,
     updateCandidate,
     deleteCandidate,
+    bulkDeleteCandidates,
     previewExcelImport,
     confirmExcelImport,
     downloadImportTemplate,

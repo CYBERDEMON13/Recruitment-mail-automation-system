@@ -53,6 +53,7 @@ router.post('/candidates/import/confirm', authenticateToken, candidateController
 router.post('/candidates', authenticateToken, candidateController.createCandidate);
 router.get('/candidates/:id', authenticateToken, candidateController.getCandidateById);
 router.put('/candidates/:id', authenticateToken, candidateController.updateCandidate);
+router.post('/candidates/bulk-delete', authenticateToken, candidateController.bulkDeleteCandidates);
 router.delete('/candidates/:id', authenticateToken, candidateController.deleteCandidate);
 
 // --- DOCUMENT GENERATOR ROUTES ---

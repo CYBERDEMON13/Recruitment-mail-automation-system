@@ -41,6 +41,7 @@ export default function CandidateManagementPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -182,6 +183,21 @@ export default function CandidateManagementPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      const res = await axios.post('/api/candidates/bulk-delete', { candidateIds: selectedIds });
+      if (res.data.success) {
+        showSuccess(`Successfully deleted ${res.data.deletedCount || selectedIds.length} candidate(s).`);
+        setSelectedIds([]);
+        setShowBulkDeleteModal(false);
+        fetchCandidates();
+      }
+    } catch (err) {
+      showError(err.response?.data?.message || 'Bulk delete failed.');
+    }
+  };
+
   const handleExport = async () => {
     try {
       const response = await axios.get('/api/candidates/export', { responseType: 'blob' });
@@ -246,10 +262,21 @@ export default function CandidateManagementPage() {
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           {selectedIds.length > 0 && (
-            <button className="btn btn-primary" onClick={proceedToEmailComposer}>
-              <Send size={18} />
-              <span>Send Email ({selectedIds.length})</span>
-            </button>
+            <>
+              <button className="btn btn-primary" onClick={proceedToEmailComposer}>
+                <Send size={18} />
+                <span>Send Email ({selectedIds.length})</span>
+              </button>
+
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowBulkDeleteModal(true)}
+                style={{ color: '#ef4444', borderColor: '#fca5a5', background: 'rgba(239, 68, 68, 0.05)' }}
+              >
+                <Trash2 size={18} />
+                <span>Delete Selected ({selectedIds.length})</span>
+              </button>
+            </>
           )}
 
           <button className="btn btn-secondary" onClick={handleExport}>
@@ -586,6 +613,33 @@ export default function CandidateManagementPage() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setDeletingId(null)}>Cancel</button>
               <button className="btn btn-danger" onClick={handleDeleteCandidate}>Delete Candidate</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '420px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title" style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Trash2 size={20} />
+                Confirm Bulk Deletion
+              </h3>
+              <button className="modal-close-btn" onClick={() => setShowBulkDeleteModal(false)}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to permanently delete <strong>{selectedIds.length} selected candidate record(s)</strong>?</p>
+              <p style={{ fontSize: '0.835rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                This action will remove their profiles, document records, and email log history. This process cannot be undone.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowBulkDeleteModal(false)}>Cancel</button>
+              <button className="btn btn-danger" style={{ background: '#ef4444', borderColor: '#ef4444', color: '#fff' }} onClick={handleBulkDelete}>
+                Delete {selectedIds.length} Candidate(s)
+              </button>
             </div>
           </div>
         </div>
