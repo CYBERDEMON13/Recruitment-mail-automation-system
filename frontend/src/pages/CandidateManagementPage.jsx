@@ -394,8 +394,21 @@ export default function CandidateManagementPage() {
       {/* Candidate Data Table */}
       <div className="table-container">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center' }}>
-            <div className="spinner" style={{ borderColor: 'var(--primary-500)', borderTopColor: 'transparent', margin: '0 auto' }}></div>
+          <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '0.75rem 0.5rem', borderBottom: '1px solid var(--border-light)' }}>
+                <div className="skeleton" style={{ width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0 }} />
+                <div className="skeleton" style={{ width: '80px', height: '16px', borderRadius: '4px' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: '0 0 200px' }}>
+                  <div className="skeleton" style={{ width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0 }} />
+                  <div className="skeleton" style={{ width: '130px', height: '16px', borderRadius: '4px' }} />
+                </div>
+                <div className="skeleton" style={{ width: '110px', height: '16px', borderRadius: '4px' }} />
+                <div className="skeleton" style={{ width: '80px', height: '16px', borderRadius: '4px' }} />
+                <div className="skeleton" style={{ width: '60px', height: '22px', borderRadius: '99px' }} />
+                <div className="skeleton" style={{ width: '60px', height: '22px', borderRadius: '99px' }} />
+              </div>
+            ))}
           </div>
         ) : (
           <table className="data-table">
@@ -434,8 +447,20 @@ export default function CandidateManagementPage() {
                       </span>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 600 }}>{c.full_name}</div>
-                      <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>{c.email} • {c.phone}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{
+                          width: '30px', height: '30px', borderRadius: '50%',
+                          background: 'linear-gradient(135deg, var(--primary-500), var(--purple-500))',
+                          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontWeight: 700, fontSize: '0.75rem', flexShrink: 0
+                        }}>
+                          {c.full_name?.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{c.full_name}</div>
+                          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>{c.email} • {c.phone}</div>
+                        </div>
+                      </div>
                     </td>
                     <td>
                       <div style={{ fontWeight: 500 }}>{c.job_position}</div>
@@ -511,8 +536,12 @@ export default function CandidateManagementPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                    No candidates found matching criteria.
+                  <td colSpan="8">
+                    <div className="empty-state">
+                      <div className="empty-state-icon"><Users size={26} style={{ color: 'var(--text-light)' }} /></div>
+                      <div className="empty-state-title">No candidates found</div>
+                      <div className="empty-state-desc">Try adjusting your filters or add your first candidate</div>
+                    </div>
                   </td>
                 </tr>
               )}

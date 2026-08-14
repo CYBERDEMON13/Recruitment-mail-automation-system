@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { User, Mail, Lock, Save, ShieldCheck } from 'lucide-react';
+import { User, Mail, Lock, Save, ShieldCheck, Camera, KeyRound } from 'lucide-react';
 
 export default function UserProfilePage() {
   const { user, updateUser } = useAuth();
@@ -13,19 +13,15 @@ export default function UserProfilePage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('profile');
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const res = await axios.put('/api/auth/profile', {
-        name,
-        email,
-        currentPassword,
-        newPassword
+        name, email, currentPassword, newPassword
       });
-
       if (res.data.success) {
         showSuccess('Profile details updated successfully.');
         updateUser(res.data.user);
@@ -44,107 +40,116 @@ export default function UserProfilePage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">
-            <User size={28} style={{ color: 'var(--primary-600)' }} />
-            HR Admin User Profile
+            <User size={26} style={{ color: 'var(--primary-600)' }} />
+            My Profile
           </h1>
-          <p className="page-subtitle">Manage your account information and change login credentials</p>
+          <p className="page-subtitle">Manage your account information and credentials</p>
         </div>
       </div>
 
-      <div style={{ maxWidth: '600px' }}>
-        <div className="glass-card" style={{ padding: '2rem' }}>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-            <div style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: '1.5rem',
-              boxShadow: 'var(--shadow-md)'
-            }}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'H'}
-            </div>
-
-            <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{user?.name || 'HR Administrator'}</h3>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{user?.email}</div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--emerald-600)', marginTop: '0.25rem' }}>
-                <ShieldCheck size={14} />
-                <span>Authorized HR Administrator Role</span>
+      <div style={{ maxWidth: '680px' }}>
+        {/* Profile Header Card */}
+        <div className="glass-card" style={{
+          marginBottom: '1.5rem',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, var(--primary-600) 0%, #6d28d9 100%)',
+            height: '80px',
+            position: 'relative'
+          }} />
+          <div style={{ padding: '0 2rem 1.75rem', position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div style={{
+                width: '76px', height: '76px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #3b82f6, #6d28d9)',
+                color: '#ffffff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 800, fontSize: '1.75rem',
+                border: '4px solid var(--bg-surface)',
+                boxShadow: '0 4px 16px rgba(59,130,246,0.35)',
+                marginTop: '-38px',
+                position: 'relative'
+              }}>
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'H'}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                  fontSize: '0.75rem', fontWeight: 700,
+                  color: 'var(--emerald-600)',
+                  background: 'rgba(16,185,129,0.1)',
+                  border: '1px solid rgba(16,185,129,0.2)',
+                  padding: '0.3rem 0.75rem', borderRadius: '99px'
+                }}>
+                  <ShieldCheck size={13} />
+                  {user?.role?.toUpperCase() || 'USER'}
+                </span>
               </div>
             </div>
+            <div style={{ fontWeight: 800, fontSize: '1.25rem', fontFamily: 'var(--font-heading)', marginBottom: '0.2rem' }}>
+              {user?.name || 'HR Administrator'}
+            </div>
+            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{user?.email}</div>
           </div>
+        </div>
 
+        {/* Tabs */}
+        <div className="tab-list">
+          <button className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
+            <User size={15} style={{ display: 'inline', marginRight: '0.4rem' }} />
+            Account Details
+          </button>
+          <button className={`tab-btn ${activeTab === 'password' ? 'active' : ''}`} onClick={() => setActiveTab('password')}>
+            <KeyRound size={15} style={{ display: 'inline', marginRight: '0.4rem' }} />
+            Change Password
+          </button>
+        </div>
+
+        <div className="glass-card" style={{ padding: '2rem' }}>
           <form onSubmit={handleUpdateProfile}>
-            <div className="form-group">
-              <label className="form-label">Full Name</label>
-              <input
-                type="text"
-                className="form-control"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
+            {activeTab === 'profile' && (
+              <>
+                <div className="form-group">
+                  <label className="form-label">Full Name</label>
+                  <input type="text" className="form-control" value={name} onChange={(e) => setName(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Email Address</label>
+                  <input type="email" className="form-control" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+              </>
+            )}
 
-            <div className="form-group">
-              <label className="form-label">Email Address</label>
-              <input
-                type="email"
-                className="form-control"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+            {activeTab === 'password' && (
+              <>
+                <div className="info-banner info-banner-primary" style={{ marginBottom: '1.5rem', borderRadius: 'var(--radius-md)' }}>
+                  <Lock size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <span>Leave fields empty if you don't want to change your password.</span>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Current Password</label>
+                  <input type="password" className="form-control" placeholder="Enter current password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">New Password</label>
+                  <input type="password" className="form-control" placeholder="Enter new password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                </div>
+              </>
+            )}
 
-            <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '1.5rem 0' }} />
-
-            <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>Change Password (Optional)</h4>
-
-            <div className="form-group">
-              <label className="form-label">Current Password</label>
-              <input
-                type="password"
-                className="form-control"
-                placeholder="Required only to set a new password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">New Password</label>
-              <input
-                type="password"
-                className="form-control"
-                placeholder="Enter new password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
-            </div>
-
-            <div style={{ marginTop: '1.75rem' }}>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={loading}
-                style={{ width: '100%', padding: '0.85rem' }}
-              >
-                {loading ? <span className="spinner"></span> : (
+            <div style={{ marginTop: '1.5rem' }}>
+              <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%', padding: '0.85rem' }}>
+                {loading ? <span className="spinner" /> : (
                   <>
                     <Save size={18} />
-                    <span>Update Account Details</span>
+                    <span>Save Changes</span>
                   </>
                 )}
               </button>
             </div>
           </form>
-
         </div>
       </div>
     </div>

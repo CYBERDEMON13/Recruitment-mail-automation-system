@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
@@ -28,8 +28,15 @@ function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-app)' }}>
-        <div className="spinner" style={{ width: '40px', height: '40px', borderColor: 'var(--primary-500)', borderTopColor: 'transparent' }}></div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-app)', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{
+          width: '48px', height: '48px',
+          border: '3px solid rgba(59, 130, 246, 0.15)',
+          borderTop: '3px solid var(--primary-500)',
+          borderRadius: '50%',
+          animation: 'spin 0.7s linear infinite'
+        }} />
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Authenticating...</p>
       </div>
     );
   }
@@ -49,6 +56,38 @@ function AdminRoute({ children }) {
   return children;
 }
 
+// Animated page wrapper that re-mounts on route change
+function AnimatedPage({ children }) {
+  const location = useLocation();
+  const [displayLocation, setDisplayLocation] = useState(location);
+  const [transitionStage, setTransitionStage] = useState('enter');
+
+  useEffect(() => {
+    if (location.pathname !== displayLocation.pathname) {
+      setTransitionStage('exit');
+      const timer = setTimeout(() => {
+        setDisplayLocation(location);
+        setTransitionStage('enter');
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [location, displayLocation]);
+
+  return (
+    <div
+      key={displayLocation.pathname}
+      className="page-transition-wrapper"
+      style={{
+        opacity: transitionStage === 'exit' ? 0 : 1,
+        transform: transitionStage === 'exit' ? 'translateY(6px)' : 'translateY(0)',
+        transition: 'opacity 0.15s ease, transform 0.15s ease',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function App() {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -66,21 +105,23 @@ export default function App() {
                 <div className="main-content">
                   <Navbar />
                   <main className="page-body">
-                    <Routes>
-                      <Route path="/" element={<DashboardPage />} />
-                      <Route path="/candidates" element={<CandidateManagementPage />} />
-                      <Route path="/import-candidates" element={<ImportCandidatesPage />} />
-                      <Route path="/documents" element={<DocumentGeneratorPage />} />
-                      <Route path="/templates" element={<EmailTemplatesPage />} />
-                      <Route path="/composer" element={<EmailComposerPage />} />
-                      <Route path="/email-history" element={<EmailHistoryPage />} />
-                      <Route path="/settings" element={<SettingsPage />} />
-                      <Route path="/profile" element={<UserProfilePage />} />
-                      <Route path="/database" element={<AdminRoute><DatabaseExplorerPage /></AdminRoute>} />
-                      <Route path="/users" element={<AdminRoute><UserAccessManagementPage /></AdminRoute>} />
-                      <Route path="/soc-dashboard" element={<AdminRoute><SocDashboardPage /></AdminRoute>} />
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
+                    <AnimatedPage>
+                      <Routes>
+                        <Route path="/" element={<DashboardPage />} />
+                        <Route path="/candidates" element={<CandidateManagementPage />} />
+                        <Route path="/import-candidates" element={<ImportCandidatesPage />} />
+                        <Route path="/documents" element={<DocumentGeneratorPage />} />
+                        <Route path="/templates" element={<EmailTemplatesPage />} />
+                        <Route path="/composer" element={<EmailComposerPage />} />
+                        <Route path="/email-history" element={<EmailHistoryPage />} />
+                        <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/profile" element={<UserProfilePage />} />
+                        <Route path="/database" element={<AdminRoute><DatabaseExplorerPage /></AdminRoute>} />
+                        <Route path="/users" element={<AdminRoute><UserAccessManagementPage /></AdminRoute>} />
+                        <Route path="/soc-dashboard" element={<AdminRoute><SocDashboardPage /></AdminRoute>} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Routes>
+                    </AnimatedPage>
                   </main>
                 </div>
               </div>

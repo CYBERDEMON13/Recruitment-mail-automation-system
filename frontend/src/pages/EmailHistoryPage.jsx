@@ -10,7 +10,9 @@ import {
   ChevronLeft, 
   ChevronRight,
   X,
-  FileText
+  FileText,
+  MailCheck,
+  MailX
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
@@ -119,8 +121,16 @@ export default function EmailHistoryPage() {
       {/* Data Table */}
       <div className="table-container">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center' }}>
-            <div className="spinner" style={{ borderColor: 'var(--primary-500)', borderTopColor: 'transparent', margin: '0 auto' }}></div>
+          <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '0.75rem 0' }}>
+                <div className="skeleton" style={{ width: '40px', height: '16px', borderRadius: '4px' }} />
+                <div className="skeleton" style={{ width: '160px', height: '16px', borderRadius: '4px' }} />
+                <div className="skeleton" style={{ width: '200px', height: '16px', borderRadius: '4px' }} />
+                <div className="skeleton" style={{ width: '100px', height: '16px', borderRadius: '4px' }} />
+                <div className="skeleton" style={{ width: '60px', height: '22px', borderRadius: '99px' }} />
+              </div>
+            ))}
           </div>
         ) : (
           <table className="data-table">
@@ -181,8 +191,12 @@ export default function EmailHistoryPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                    No email logs found.
+                  <td colSpan="6">
+                    <div className="empty-state">
+                      <div className="empty-state-icon"><MailCheck size={26} style={{ color: 'var(--text-light)' }} /></div>
+                      <div className="empty-state-title">No email logs found</div>
+                      <div className="empty-state-desc">Try adjusting your search or send your first email campaign</div>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -235,8 +249,9 @@ export default function EmailHistoryPage() {
               </div>
 
               {viewLog.error_message && (
-                <div style={{ padding: '0.85rem', borderRadius: 'var(--radius-md)', background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: '0.825rem', marginBottom: '1rem' }}>
-                  <strong>Error Message:</strong> {viewLog.error_message}
+                <div className="info-banner info-banner-error" style={{ marginBottom: '1rem', borderRadius: 'var(--radius-md)' }}>
+                  <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div><strong>Error:</strong> {viewLog.error_message}</div>
                 </div>
               )}
 

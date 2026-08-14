@@ -129,42 +129,50 @@ export default function DocumentGeneratorPage() {
                   type="button"
                   onClick={() => setDocType('offer_letter')}
                   style={{
-                    padding: '0.85rem',
+                    padding: '1rem',
                     borderRadius: 'var(--radius-md)',
-                    border: docType === 'offer_letter' ? '2px solid var(--primary-600)' : '1px solid var(--border-color)',
-                    background: docType === 'offer_letter' ? 'var(--primary-50)' : 'var(--bg-surface)',
+                    border: docType === 'offer_letter' ? '2px solid var(--primary-500)' : '1.5px solid var(--border-color)',
+                    background: docType === 'offer_letter' ? 'rgba(59,130,246,0.08)' : 'var(--bg-app)',
                     color: docType === 'offer_letter' ? 'var(--primary-700)' : 'var(--text-main)',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '0.35rem'
+                    gap: '0.5rem',
+                    transition: 'all 0.2s ease',
+                    fontFamily: 'var(--font-body)'
                   }}
                 >
-                  <FileText size={22} />
-                  <span>Offer Letter PDF</span>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: docType === 'offer_letter' ? 'rgba(59,130,246,0.12)' : 'var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileText size={20} color={docType === 'offer_letter' ? 'var(--primary-600)' : 'var(--text-muted)'} />
+                  </div>
+                  <span style={{ fontSize: '0.85rem' }}>Offer Letter</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setDocType('certificate')}
                   style={{
-                    padding: '0.85rem',
+                    padding: '1rem',
                     borderRadius: 'var(--radius-md)',
-                    border: docType === 'certificate' ? '2px solid var(--amber-500)' : '1px solid var(--border-color)',
-                    background: docType === 'certificate' ? '#fffbebf0' : 'var(--bg-surface)',
+                    border: docType === 'certificate' ? '2px solid var(--amber-500)' : '1.5px solid var(--border-color)',
+                    background: docType === 'certificate' ? 'rgba(245,158,11,0.08)' : 'var(--bg-app)',
                     color: docType === 'certificate' ? '#b45309' : 'var(--text-main)',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '0.35rem'
+                    gap: '0.5rem',
+                    transition: 'all 0.2s ease',
+                    fontFamily: 'var(--font-body)'
                   }}
                 >
-                  <Award size={22} />
-                  <span>Certificate PDF</span>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: docType === 'certificate' ? 'rgba(245,158,11,0.12)' : 'var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Award size={20} color={docType === 'certificate' ? 'var(--amber-500)' : 'var(--text-muted)'} />
+                  </div>
+                  <span style={{ fontSize: '0.85rem' }}>Certificate</span>
                 </button>
               </div>
             </div>
@@ -197,21 +205,29 @@ export default function DocumentGeneratorPage() {
             {/* Selected Candidate Metadata Card Preview */}
             {currentCandidate && (
               <div style={{
-                padding: '1rem',
+                padding: '1rem 1.15rem',
                 borderRadius: 'var(--radius-md)',
                 background: 'var(--bg-app)',
                 border: '1px solid var(--border-color)',
+                borderLeft: '4px solid var(--primary-500)',
                 marginBottom: '1.5rem',
                 fontSize: '0.85rem'
               }}>
-                <div style={{ fontWeight: 700, color: 'var(--primary-600)', marginBottom: '0.35rem' }}>
-                  Selected Candidate Profile:
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.75rem' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-500), var(--purple-500))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}>
+                    {currentCandidate.full_name?.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{currentCandidate.full_name}</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{currentCandidate.candidate_id}</div>
+                  </div>
                 </div>
-                <div><strong>Name:</strong> {currentCandidate.full_name}</div>
-                <div><strong>Position:</strong> {currentCandidate.job_position}</div>
-                <div><strong>Department:</strong> {currentCandidate.department}</div>
-                <div><strong>Joining Date:</strong> {currentCandidate.joining_date}</div>
-                <div><strong>Salary:</strong> {currentCandidate.salary}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem 1rem' }}>
+                  <div><span style={{ color: 'var(--text-muted)' }}>Position:</span> <strong>{currentCandidate.job_position}</strong></div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>Dept:</span> <strong>{currentCandidate.department}</strong></div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>Joining:</span> <strong>{currentCandidate.joining_date}</strong></div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>Salary:</span> <strong>{currentCandidate.salary}</strong></div>
+                </div>
               </div>
             )}
 
@@ -238,44 +254,32 @@ export default function DocumentGeneratorPage() {
           </h3>
 
           {generatedDoc ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '2rem' }}>
               <div style={{
-                width: '64px',
-                height: '64px',
+                width: '72px', height: '72px',
                 borderRadius: '50%',
-                background: 'var(--primary-100)',
-                color: 'var(--primary-600)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1rem'
+                background: 'rgba(16, 185, 129, 0.1)',
+                color: 'var(--emerald-500)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: '1.25rem',
+                border: '2px solid rgba(16, 185, 129, 0.2)'
               }}>
                 <CheckCircle2 size={36} />
               </div>
 
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.35rem' }}>
+              <h4 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.35rem' }}>
                 PDF Document Ready!
               </h4>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-                File: {generatedDoc.filename}
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.75rem', lineHeight: 1.5 }}>
+                {generatedDoc.filename}
               </p>
 
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <a
-                  href={generatedDoc.downloadUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-secondary"
-                >
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <a href={generatedDoc.downloadUrl} target="_blank" rel="noreferrer" className="btn btn-secondary">
                   <Eye size={18} />
                   <span>Preview PDF</span>
                 </a>
-
-                <a
-                  href={generatedDoc.downloadUrl}
-                  download
-                  className="btn btn-primary"
-                >
+                <a href={generatedDoc.downloadUrl} download className="btn btn-primary">
                   <Download size={18} />
                   <span>Download File</span>
                 </a>

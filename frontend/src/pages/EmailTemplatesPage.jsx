@@ -222,25 +222,50 @@ export default function EmailTemplatesPage() {
 
       {/* Templates Grid */}
       {loading ? (
-        <div style={{ padding: '3rem', textAlign: 'center' }}>
-          <div className="spinner" style={{ borderColor: 'var(--primary-500)', borderTopColor: 'transparent', margin: '0 auto' }}></div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem' }}>
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="glass-card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <div className="skeleton skeleton-title" style={{ width: '60%' }} />
+                <div className="skeleton" style={{ width: '80px', height: '22px', borderRadius: '99px' }} />
+              </div>
+              <div className="skeleton skeleton-text" style={{ width: '90%', marginBottom: '0.5rem' }} />
+              <div className="skeleton" style={{ height: '100px', marginBottom: '1rem' }} />
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <div className="skeleton" style={{ width: '70px', height: '32px', borderRadius: 'var(--radius-sm)' }} />
+                <div className="skeleton" style={{ width: '70px', height: '32px', borderRadius: 'var(--radius-sm)' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : templates.length === 0 ? (
+        <div className="glass-card">
+          <div className="empty-state" style={{ padding: '4rem 2rem' }}>
+            <div className="empty-state-icon"><Mail size={28} style={{ color: 'var(--text-light)' }} /></div>
+            <div className="empty-state-title">No email templates yet</div>
+            <div className="empty-state-desc">Create your first template or use the AI Generator to get started</div>
+            <button className="btn btn-primary" style={{ marginTop: '1.25rem' }} onClick={openAddModal}>
+              <Plus size={16} />
+              <span>Create First Template</span>
+            </button>
+          </div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem' }}>
           {templates.map(tpl => (
             <div key={tpl.id} className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>{tpl.name}</h3>
-                <span className="badge badge-generated">{tpl.template_type}</span>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem', gap: '0.5rem' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, lineHeight: 1.3 }}>{tpl.name}</h3>
+                <span className="badge badge-generated" style={{ flexShrink: 0, textTransform: 'uppercase', fontSize: '0.65rem' }}>{tpl.template_type.replace('_', ' ')}</span>
               </div>
 
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-600)', marginBottom: '0.75rem' }}>
-                Subject: {tpl.subject}
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary-600)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>Subject:</span> {tpl.subject}
               </div>
 
               <div style={{
                 flex: 1,
-                fontSize: '0.825rem',
+                fontSize: '0.8rem',
                 color: 'var(--text-muted)',
                 background: 'var(--bg-app)',
                 padding: '0.85rem',
@@ -249,18 +274,19 @@ export default function EmailTemplatesPage() {
                 maxHeight: '160px',
                 overflowY: 'auto',
                 marginBottom: '1.25rem',
-                border: '1px solid var(--border-color)'
+                border: '1px solid var(--border-color)',
+                lineHeight: 1.6
               }}>
                 {tpl.body}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.85rem' }}>
                 <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(tpl)}>
-                  <Edit3 size={16} />
+                  <Edit3 size={15} />
                   <span>Edit</span>
                 </button>
-                <button className="btn btn-secondary btn-sm" style={{ color: '#ef4444' }} onClick={() => setDeletingId(tpl.id)}>
-                  <Trash2 size={16} />
+                <button className="btn btn-secondary btn-sm" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.2)' }} onClick={() => setDeletingId(tpl.id)}>
+                  <Trash2 size={15} />
                   <span>Delete</span>
                 </button>
               </div>

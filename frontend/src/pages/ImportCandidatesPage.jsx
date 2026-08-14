@@ -102,7 +102,7 @@ export default function ImportCandidatesPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">
-            <FileSpreadsheet size={28} style={{ color: 'var(--primary-600)' }} />
+            <FileSpreadsheet size={26} style={{ color: 'var(--primary-600)' }} />
             Import Candidates from Excel
           </h1>
           <p className="page-subtitle">Batch upload candidates using Excel or CSV files with automated validation</p>
@@ -114,21 +114,62 @@ export default function ImportCandidatesPage() {
         </button>
       </div>
 
-      {/* Upload Box Container */}
+      {/* Step Indicator */}
+      <div className="step-indicator" style={{ marginBottom: '2rem' }}>
+        <div className="step-item">
+          <div className={`step-circle ${file ? 'done' : 'active'}`}>{file ? '✓' : '1'}</div>
+          <div style={{ marginLeft: '0.5rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Select File</div>
+          <div className="step-line" />
+        </div>
+        <div className="step-item">
+          <div className={`step-circle ${parseData ? 'done' : ''}`}>{parseData ? '✓' : '2'}</div>
+          <div style={{ marginLeft: '0.5rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Validate</div>
+          <div className="step-line" />
+        </div>
+        <div className="step-item" style={{ flex: 0 }}>
+          <div className="step-circle">3</div>
+          <div style={{ marginLeft: '0.5rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>Import</div>
+        </div>
+      </div>
+
       <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <div style={{
-          border: '2px dashed var(--border-color)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '3rem 2rem',
-          textAlign: 'center',
-          background: 'var(--bg-app)',
-          cursor: 'pointer'
-        }}>
-          <UploadCloud size={48} style={{ color: 'var(--primary-500)', marginBottom: '1rem' }} />
-          <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Choose an Excel or CSV File</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
-            Supported formats: .xlsx, .xls, .csv (Max 10MB)
-          </p>
+        <label
+          htmlFor="excelFileInput"
+          style={{
+            border: `2px dashed ${file ? 'var(--emerald-500)' : 'var(--border-color)'}`,
+            borderRadius: 'var(--radius-lg)',
+            padding: '3rem 2rem',
+            textAlign: 'center',
+            background: file ? 'rgba(16, 185, 129, 0.04)' : 'var(--bg-app)',
+            cursor: 'pointer',
+            display: 'block',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <div style={{
+            width: '64px', height: '64px', borderRadius: 'var(--radius-lg)',
+            background: file ? 'rgba(16,185,129,0.1)' : 'rgba(59,130,246,0.08)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 1.25rem'
+          }}>
+            <UploadCloud size={32} style={{ color: file ? 'var(--emerald-500)' : 'var(--primary-500)' }} />
+          </div>
+
+          {file ? (
+            <div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--emerald-600)', marginBottom: '0.35rem' }}>
+                {file.name}
+              </div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                {(file.size / 1024).toFixed(1)} KB — Click to change file
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.5rem' }}>Drop your file here or click to browse</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Supported: .xlsx, .xls, .csv (Max 10MB)</p>
+            </div>
+          )}
 
           <input
             type="file"
@@ -137,18 +178,7 @@ export default function ImportCandidatesPage() {
             onChange={handleFileChange}
             style={{ display: 'none' }}
           />
-
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', alignItems: 'center' }}>
-            <label htmlFor="excelFileInput" className="btn btn-secondary">
-              Select File
-            </label>
-            {file && (
-              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary-600)' }}>
-                {file.name} ({(file.size / 1024).toFixed(1)} KB)
-              </span>
-            )}
-          </div>
-        </div>
+        </label>
 
         <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
           <button

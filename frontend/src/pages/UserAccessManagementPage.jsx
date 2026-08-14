@@ -12,7 +12,8 @@ import {
   UserCheck, 
   Mail, 
   Lock,
-  RefreshCw
+  RefreshCw,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -160,109 +161,76 @@ export default function UserAccessManagementPage() {
 
       {/* KPI Stats Cards */}
       <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--warning-100)', color: 'var(--warning-600)' }}>
-            <Clock size={24} />
-          </div>
-          <div>
-            <div className="stat-value" style={{ color: 'var(--warning-600)' }}>{stats.pending}</div>
-            <div className="stat-label">Pending Approval</div>
+        <div className="stat-card stat-warning">
+          <div className="stat-icon-wrapper"><Clock size={22} /></div>
+          <div className="stat-info">
+            <span className="stat-value">{stats.pending}</span>
+            <span className="stat-label">Pending Approval</span>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--success-100)', color: 'var(--success-600)' }}>
-            <CheckCircle size={24} />
-          </div>
-          <div>
-            <div className="stat-value" style={{ color: 'var(--success-600)' }}>{stats.approved}</div>
-            <div className="stat-label">Approved Active Users</div>
+        <div className="stat-card stat-success">
+          <div className="stat-icon-wrapper"><CheckCircle size={22} /></div>
+          <div className="stat-info">
+            <span className="stat-value">{stats.approved}</span>
+            <span className="stat-label">Approved Active Users</span>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--rose-100)', color: 'var(--rose-600)' }}>
-            <XCircle size={24} />
-          </div>
-          <div>
-            <div className="stat-value" style={{ color: 'var(--rose-600)' }}>{stats.rejected}</div>
-            <div className="stat-label">Declined Requests</div>
+        <div className="stat-card stat-danger">
+          <div className="stat-icon-wrapper"><XCircle size={22} /></div>
+          <div className="stat-info">
+            <span className="stat-value">{stats.rejected}</span>
+            <span className="stat-label">Declined Requests</span>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--primary-100)', color: 'var(--primary-600)' }}>
-            <Users size={24} />
-          </div>
-          <div>
-            <div className="stat-value">{stats.total}</div>
-            <div className="stat-label">Total User Accounts</div>
+        <div className="stat-card stat-primary">
+          <div className="stat-icon-wrapper"><Users size={22} /></div>
+          <div className="stat-info">
+            <span className="stat-value">{stats.total}</span>
+            <span className="stat-label">Total User Accounts</span>
           </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
-        <button
-          type="button"
-          onClick={() => setActiveTab('pending')}
-          style={{
-            padding: '0.75rem 1.25rem',
-            border: 'none',
-            background: 'none',
-            borderBottom: activeTab === 'pending' ? '3px solid var(--primary-600)' : '3px solid transparent',
-            color: activeTab === 'pending' ? 'var(--primary-900)' : 'var(--text-muted)',
-            fontWeight: activeTab === 'pending' ? 700 : 500,
-            fontSize: '0.95rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}
-        >
-          <Clock size={18} />
-          <span>Pending Access Requests</span>
-          {stats.pending > 0 && (
-            <span style={{ background: 'var(--warning-500)', color: '#fff', fontSize: '0.75rem', padding: '0.15rem 0.5rem', borderRadius: '10px' }}>
-              {stats.pending}
-            </span>
-          )}
-        </button>
+      <div className="tab-list">
+          <button type="button" className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`} onClick={() => setActiveTab('pending')} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Clock size={16} />
+            <span>Pending Requests</span>
+            {stats.pending > 0 && (
+              <span style={{ background: 'var(--amber-500)', color: '#fff', fontSize: '0.7rem', padding: '0.1rem 0.45rem', borderRadius: '10px', fontWeight: 700, lineHeight: 1.3 }}>
+                {stats.pending}
+              </span>
+            )}
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('active')}
-          style={{
-            padding: '0.75rem 1.25rem',
-            border: 'none',
-            background: 'none',
-            borderBottom: activeTab === 'active' ? '3px solid var(--primary-600)' : '3px solid transparent',
-            color: activeTab === 'active' ? 'var(--primary-900)' : 'var(--text-muted)',
-            fontWeight: activeTab === 'active' ? 700 : 500,
-            fontSize: '0.95rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}
-        >
-          <ShieldCheck size={18} />
-          <span>System Users & Roles ({stats.approved})</span>
-        </button>
-      </div>
+          <button type="button" className={`tab-btn ${activeTab === 'active' ? 'active' : ''}`} onClick={() => setActiveTab('active')} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <ShieldCheck size={16} />
+            <span>System Users & Roles ({stats.approved})</span>
+          </button>
+        </div>
 
       {/* Tab Content 1: Pending Access Requests */}
       {activeTab === 'pending' && (
         <div className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
           {loading ? (
-            <div style={{ padding: '3rem', textAlign: 'center' }}>
-              <div className="spinner" style={{ borderColor: 'var(--primary-500)', borderTopColor: 'transparent' }}></div>
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '0.85rem 1.15rem', borderBottom: '1px solid var(--border-light)' }}>
+                  <div className="skeleton" style={{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0 }} />
+                  <div className="skeleton" style={{ width: '150px', height: '16px', borderRadius: '4px' }} />
+                  <div className="skeleton" style={{ width: '180px', height: '16px', borderRadius: '4px' }} />
+                  <div className="skeleton" style={{ width: '80px', height: '22px', borderRadius: '99px', marginLeft: 'auto' }} />
+                </div>
+              ))}
             </div>
           ) : pendingUsers.length === 0 ? (
-            <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <CheckCircle size={40} color="var(--success-500)" style={{ marginBottom: '0.75rem' }} />
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>No Pending Access Requests</h3>
-              <p style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>All user registration requests have been reviewed and processed.</p>
+            <div className="empty-state">
+              <div className="empty-state-icon"><CheckCircle size={26} style={{ color: 'var(--emerald-500)' }} /></div>
+              <div className="empty-state-title">No Pending Access Requests</div>
+              <div className="empty-state-desc">All registration requests have been reviewed.</div>
             </div>
           ) : (
             <div className="table-container">
@@ -313,8 +281,8 @@ export default function UserAccessManagementPage() {
                       </td>
 
                       <td>
-                        <span className="badge" style={{ background: 'var(--warning-100)', color: 'var(--warning-700)', border: '1px solid var(--warning-300)' }}>
-                          ⏳ Pending Approval
+                        <span className="badge badge-pending">
+                          Pending Approval
                         </span>
                       </td>
 
@@ -354,8 +322,16 @@ export default function UserAccessManagementPage() {
       {activeTab === 'active' && (
         <div className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
           {loading ? (
-            <div style={{ padding: '3rem', textAlign: 'center' }}>
-              <div className="spinner" style={{ borderColor: 'var(--primary-500)', borderTopColor: 'transparent' }}></div>
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {[...Array(4)].map((_, i) => (
+                <div key={i} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '0.85rem 1.15rem', borderBottom: '1px solid var(--border-light)' }}>
+                  <div className="skeleton" style={{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0 }} />
+                  <div className="skeleton" style={{ width: '150px', height: '16px', borderRadius: '4px' }} />
+                  <div className="skeleton" style={{ width: '160px', height: '16px', borderRadius: '4px' }} />
+                  <div className="skeleton" style={{ width: '80px', height: '22px', borderRadius: '99px' }} />
+                  <div className="skeleton" style={{ width: '80px', height: '22px', borderRadius: '99px' }} />
+                </div>
+              ))}
             </div>
           ) : (
             <div className="table-container">
@@ -452,14 +428,14 @@ export default function UserAccessManagementPage() {
 
       {/* Approve & Assign Role Modal */}
       {selectedUserForApproval && (
-        <div className="modal-backdrop" onClick={() => setSelectedUserForApproval(null)}>
+        <div className="modal-overlay" onClick={() => setSelectedUserForApproval(null)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck size={22} color="var(--primary-600)" />
+              <h3 className="modal-title">
+                <ShieldCheck size={20} color="var(--primary-600)" />
                 <span>Grant System Access & Role</span>
               </h3>
-              <button className="btn-close" onClick={() => setSelectedUserForApproval(null)}>×</button>
+              <button className="modal-close-btn" onClick={() => setSelectedUserForApproval(null)}><X size={20} /></button>
             </div>
 
             <form onSubmit={handleApproveSubmit}>
