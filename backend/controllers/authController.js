@@ -142,11 +142,13 @@ async function register(req, res) {
 
 async function googleLogin(req, res) {
     try {
-        const { email, name, avatar } = req.body;
+        const { email, name, avatar, clerkUserId } = req.body;
 
         if (!email) {
             return res.status(400).json({ success: false, message: 'Google account email is required.' });
         }
+
+        const authProviderNote = clerkUserId ? ` (Clerk Auth User ID: ${clerkUserId})` : '';
 
         // Check if user already exists by email
         let user = await queryOne('SELECT * FROM users WHERE email = ?', [email]);
@@ -159,14 +161,14 @@ async function googleLogin(req, res) {
                 [name || email.split('@')[0], email, dummyPassword, 'staff', 'pending', avatar || null]
             );
             user = await queryOne('SELECT * FROM users WHERE id = ?', [insertRes.insertId]);
-            console.log(`[Google Auth] Created new user access request for Google account: ${email}`);
+            console.log(`[Google Auth] Created new user access request for Google account: ${email}${authProviderNote}`);
 
             logActivity(req, {
                 action: 'GOOGLE_ACCESS_REQUESTED',
                 severity: 'warning',
                 user_email: email,
                 user_id: user.id,
-                details: `New Google access request submitted by ${name || email}`
+                details: `New Google access request submitted by ${name || email}${authProviderNote}`
             });
 
             // Dispatch notification email to Administrator
