@@ -62,7 +62,7 @@ pipeline {
                         --name ${CONTAINER_NAME} \
                         --restart unless-stopped \
                         -p 80:5000 \
-                        --env-file /home/ec2-user/.env \
+                        --env-file /var/lib/jenkins/recruitify.env \
                         -v recruitify-data:/app/backend/data \
                         ${ECR_REPO}:latest
 
