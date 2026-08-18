@@ -8,11 +8,15 @@ import {
   Sparkles, 
   RefreshCw, 
   CheckCircle2, 
-  User 
+  User,
+  ShieldAlert
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function DocumentGeneratorPage() {
+  const { user } = useAuth();
+  const isReadOnly = user?.role === 'staff';
   const [candidates, setCandidates] = useState([]);
   const [selectedCandidateId, setSelectedCandidateId] = useState('');
   const [docType, setDocType] = useState('offer_letter');
@@ -85,6 +89,26 @@ export default function DocumentGeneratorPage() {
 
   return (
     <div>
+      {isReadOnly && (
+        <div style={{
+          background: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          borderRadius: '8px',
+          padding: '0.75rem 1rem',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          color: 'var(--text-main)',
+          fontSize: '0.875rem'
+        }}>
+          <ShieldAlert size={20} style={{ color: '#3b82f6', flexShrink: 0 }} />
+          <div>
+            <strong>Staff Role (Read-Only Access):</strong> PDF Document generation for Offer Letters & Certificates is disabled for Staff role accounts.
+          </div>
+        </div>
+      )}
+
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -234,7 +258,7 @@ export default function DocumentGeneratorPage() {
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={generating || !selectedCandidateId}
+              disabled={generating || !selectedCandidateId || isReadOnly}
               style={{ width: '100%', padding: '0.85rem' }}
             >
               {generating ? <span className="spinner"></span> : (

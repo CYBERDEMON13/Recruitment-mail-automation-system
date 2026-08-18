@@ -12,11 +12,15 @@ import {
   AlertCircle,
   Globe,
   Zap,
-  ShieldCheck
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+  const isReadOnly = user?.role === 'staff';
   const [settings, setSettings] = useState({
     smtp_host: 'api.resend.com',
     smtp_port: '443',
@@ -144,6 +148,26 @@ export default function SettingsPage() {
 
   return (
     <div>
+      {isReadOnly && (
+        <div style={{
+          background: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          borderRadius: '8px',
+          padding: '0.75rem 1rem',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          color: 'var(--text-main)',
+          fontSize: '0.875rem'
+        }}>
+          <ShieldAlert size={20} style={{ color: '#3b82f6', flexShrink: 0 }} />
+          <div>
+            <strong>Staff Role (Read-Only Access):</strong> System settings and email provider configuration changes are restricted to HR Managers and Administrators.
+          </div>
+        </div>
+      )}
+
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -304,7 +328,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 className="btn btn-secondary"
-                disabled={testing}
+                disabled={testing || isReadOnly}
                 onClick={handleTestSMTP}
               >
                 {testing ? <span className="spinner"></span> : (
@@ -318,7 +342,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={saving}
+                disabled={saving || isReadOnly}
                 style={{ flex: 1 }}
               >
                 {saving ? <span className="spinner"></span> : (

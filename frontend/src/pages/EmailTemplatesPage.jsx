@@ -10,11 +10,15 @@ import {
   Sparkles, 
   Tag, 
   Code,
-  Wand2
+  Wand2,
+  ShieldAlert
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function EmailTemplatesPage() {
+  const { user } = useAuth();
+  const isReadOnly = user?.role === 'staff';
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -174,6 +178,26 @@ export default function EmailTemplatesPage() {
 
   return (
     <div>
+      {isReadOnly && (
+        <div style={{
+          background: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          borderRadius: '8px',
+          padding: '0.75rem 1rem',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          color: 'var(--text-main)',
+          fontSize: '0.875rem'
+        }}>
+          <ShieldAlert size={20} style={{ color: '#3b82f6', flexShrink: 0 }} />
+          <div>
+            <strong>Staff Role (Read-Only Access):</strong> Creating, editing, or deleting email templates is disabled for Staff accounts.
+          </div>
+        </div>
+      )}
+
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -183,17 +207,19 @@ export default function EmailTemplatesPage() {
           <p className="page-subtitle">Design & edit dynamic email templates with AI assistant & candidate placeholder tags</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button className="btn btn-secondary" onClick={() => { setAiResult(null); setShowAIModal(true); }} style={{ color: 'var(--primary-600)', borderColor: 'var(--primary-200)' }}>
-            <Wand2 size={18} />
-            <span>✨ AI Email Generator</span>
-          </button>
+        {!isReadOnly && (
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button className="btn btn-secondary" onClick={() => { setAiResult(null); setShowAIModal(true); }} style={{ color: 'var(--primary-600)', borderColor: 'var(--primary-200)' }}>
+              <Wand2 size={18} />
+              <span>✨ AI Email Generator</span>
+            </button>
 
-          <button className="btn btn-primary" onClick={openAddModal}>
-            <Plus size={18} />
-            <span>Create Email Template</span>
-          </button>
-        </div>
+            <button className="btn btn-primary" onClick={openAddModal}>
+              <Plus size={18} />
+              <span>Create Email Template</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Available Variable Placeholders Info Banner */}
@@ -281,14 +307,20 @@ export default function EmailTemplatesPage() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.85rem' }}>
-                <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(tpl)}>
-                  <Edit3 size={15} />
-                  <span>Edit</span>
-                </button>
-                <button className="btn btn-secondary btn-sm" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.2)' }} onClick={() => setDeletingId(tpl.id)}>
-                  <Trash2 size={15} />
-                  <span>Delete</span>
-                </button>
+                {isReadOnly ? (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Read-Only</span>
+                ) : (
+                  <>
+                    <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(tpl)}>
+                      <Edit3 size={15} />
+                      <span>Edit</span>
+                    </button>
+                    <button className="btn btn-secondary btn-sm" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.2)' }} onClick={() => setDeletingId(tpl.id)}>
+                      <Trash2 size={15} />
+                      <span>Delete</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}

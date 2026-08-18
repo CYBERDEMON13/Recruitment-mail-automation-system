@@ -41,6 +41,9 @@ router.post('/auth/google-login', authLimiter, authController.googleLogin);
 router.get('/auth/me', authenticateToken, authController.getProfile);
 router.put('/auth/profile', authenticateToken, authController.updateProfile);
 
+// Non-staff roles permitted to perform write/mutation operations
+const WRITE_ROLES = ['admin', 'hr_manager', 'hr_recruiter'];
+
 // --- DASHBOARD ROUTES ---
 router.get('/dashboard/stats', authenticateToken, dashboardController.getDashboardStats);
 
@@ -48,39 +51,39 @@ router.get('/dashboard/stats', authenticateToken, dashboardController.getDashboa
 router.get('/candidates', authenticateToken, candidateController.getCandidates);
 router.get('/candidates/export', authenticateToken, candidateController.exportCandidates);
 router.get('/candidates/import/template', authenticateToken, candidateController.downloadImportTemplate);
-router.post('/candidates/import/preview', authenticateToken, upload.single('file'), candidateController.previewExcelImport);
-router.post('/candidates/import/confirm', authenticateToken, candidateController.confirmExcelImport);
-router.post('/candidates', authenticateToken, candidateController.createCandidate);
+router.post('/candidates/import/preview', authenticateToken, authorizeRole(...WRITE_ROLES), upload.single('file'), candidateController.previewExcelImport);
+router.post('/candidates/import/confirm', authenticateToken, authorizeRole(...WRITE_ROLES), candidateController.confirmExcelImport);
+router.post('/candidates', authenticateToken, authorizeRole(...WRITE_ROLES), candidateController.createCandidate);
 router.get('/candidates/:id', authenticateToken, candidateController.getCandidateById);
-router.put('/candidates/:id', authenticateToken, candidateController.updateCandidate);
-router.post('/candidates/bulk-delete', authenticateToken, candidateController.bulkDeleteCandidates);
-router.post('/candidates/:id/restore', authenticateToken, candidateController.restoreCandidate);
-router.delete('/candidates/:id', authenticateToken, candidateController.deleteCandidate);
+router.put('/candidates/:id', authenticateToken, authorizeRole(...WRITE_ROLES), candidateController.updateCandidate);
+router.post('/candidates/bulk-delete', authenticateToken, authorizeRole(...WRITE_ROLES), candidateController.bulkDeleteCandidates);
+router.post('/candidates/:id/restore', authenticateToken, authorizeRole(...WRITE_ROLES), candidateController.restoreCandidate);
+router.delete('/candidates/:id', authenticateToken, authorizeRole(...WRITE_ROLES), candidateController.deleteCandidate);
 
 // --- DOCUMENT GENERATOR ROUTES ---
-router.post('/documents/generate-offer-letter', authenticateToken, documentController.generateOfferLetter);
-router.post('/documents/generate-certificate', authenticateToken, documentController.generateCertificate);
+router.post('/documents/generate-offer-letter', authenticateToken, authorizeRole(...WRITE_ROLES), documentController.generateOfferLetter);
+router.post('/documents/generate-certificate', authenticateToken, authorizeRole(...WRITE_ROLES), documentController.generateCertificate);
 router.get('/documents/download/:filename', documentController.downloadDocument);
 router.get('/documents/candidate/:candidate_id', authenticateToken, documentController.getCandidateDocuments);
 
 // --- EMAIL TEMPLATE ROUTES ---
 router.get('/email-templates', authenticateToken, templateController.getTemplates);
 router.get('/email-templates/:id', authenticateToken, templateController.getTemplateById);
-router.post('/email-templates', authenticateToken, templateController.createTemplate);
-router.put('/email-templates/:id', authenticateToken, templateController.updateTemplate);
-router.delete('/email-templates/:id', authenticateToken, templateController.deleteTemplate);
+router.post('/email-templates', authenticateToken, authorizeRole(...WRITE_ROLES), templateController.createTemplate);
+router.put('/email-templates/:id', authenticateToken, authorizeRole(...WRITE_ROLES), templateController.updateTemplate);
+router.delete('/email-templates/:id', authenticateToken, authorizeRole(...WRITE_ROLES), templateController.deleteTemplate);
 
 // --- EMAIL AUTOMATION & AI WRITER ROUTES ---
-router.post('/emails/ai-generate', authenticateToken, emailController.aiGenerateEmail);
+router.post('/emails/ai-generate', authenticateToken, authorizeRole(...WRITE_ROLES), emailController.aiGenerateEmail);
 router.post('/emails/preview', authenticateToken, emailController.previewEmails);
-router.post('/emails/send', authenticateToken, emailController.sendEmails);
+router.post('/emails/send', authenticateToken, authorizeRole(...WRITE_ROLES), emailController.sendEmails);
 router.get('/emails/history', authenticateToken, emailController.getEmailHistory);
-router.post('/emails/retry/:logId', authenticateToken, emailController.retryFailedEmail);
+router.post('/emails/retry/:logId', authenticateToken, authorizeRole(...WRITE_ROLES), emailController.retryFailedEmail);
 
 // --- SETTINGS ROUTES ---
 router.get('/settings', authenticateToken, settingsController.getSettings);
-router.put('/settings', authenticateToken, settingsController.updateSettings);
-router.post('/settings/test-smtp', authenticateToken, settingsController.testSMTP);
+router.put('/settings', authenticateToken, authorizeRole('admin', 'hr_manager'), settingsController.updateSettings);
+router.post('/settings/test-smtp', authenticateToken, authorizeRole('admin', 'hr_manager'), settingsController.testSMTP);
 
 // --- SECURITY AUDIT BEACON ROUTE ---
 router.post('/audit/security-event', authenticateToken, socController.logSecurityEvent);

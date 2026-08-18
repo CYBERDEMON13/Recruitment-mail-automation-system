@@ -17,11 +17,15 @@ import {
   ChevronRight,
   FileSpreadsheet,
   Award,
-  RotateCcw
+  RotateCcw,
+  ShieldAlert
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function CandidateManagementPage() {
+  const { user } = useAuth();
+  const isReadOnly = user?.role === 'staff';
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -298,6 +302,26 @@ export default function CandidateManagementPage() {
 
   return (
     <div>
+      {isReadOnly && (
+        <div style={{
+          background: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          borderRadius: '8px',
+          padding: '0.75rem 1rem',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          color: 'var(--text-main)',
+          fontSize: '0.875rem'
+        }}>
+          <ShieldAlert size={20} style={{ color: '#3b82f6', flexShrink: 0 }} />
+          <div>
+            <strong>Staff Role (Read-Only Access):</strong> You are logged in with Staff permissions. Adding, editing, deleting, or generating documents is disabled for Staff accounts.
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="page-header">
         <div>
@@ -311,19 +335,23 @@ export default function CandidateManagementPage() {
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           {selectedIds.length > 0 && (
             <>
-              <button className="btn btn-primary" onClick={proceedToEmailComposer}>
-                <Send size={18} />
-                <span>Send Email ({selectedIds.length})</span>
-              </button>
+              {!isReadOnly && (
+                <button className="btn btn-primary" onClick={proceedToEmailComposer}>
+                  <Send size={18} />
+                  <span>Send Email ({selectedIds.length})</span>
+                </button>
+              )}
 
-              <button 
-                className="btn btn-secondary" 
-                onClick={() => setShowBulkDeleteModal(true)}
-                style={{ color: '#ef4444', borderColor: '#fca5a5', background: 'rgba(239, 68, 68, 0.05)' }}
-              >
-                <Trash2 size={18} />
-                <span>Delete Selected ({selectedIds.length})</span>
-              </button>
+              {!isReadOnly && (
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowBulkDeleteModal(true)}
+                  style={{ color: '#ef4444', borderColor: '#fca5a5', background: 'rgba(239, 68, 68, 0.05)' }}
+                >
+                  <Trash2 size={18} />
+                  <span>Delete Selected ({selectedIds.length})</span>
+                </button>
+              )}
             </>
           )}
 
@@ -332,10 +360,12 @@ export default function CandidateManagementPage() {
             <span>Export Excel</span>
           </button>
 
-          <button className="btn btn-primary" onClick={openAddModal}>
-            <Plus size={18} />
-            <span>Add Candidate</span>
-          </button>
+          {!isReadOnly && (
+            <button className="btn btn-primary" onClick={openAddModal}>
+              <Plus size={18} />
+              <span>Add Candidate</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -486,51 +516,57 @@ export default function CandidateManagementPage() {
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
-                        <button
-                          className="btn btn-secondary btn-icon"
-                          title="Generate Offer Letter PDF"
-                          onClick={() => generatePDFOffer(c.id)}
-                        >
-                          <FileText size={16} color="var(--primary-600)" />
-                        </button>
-
-                        <button
-                          className="btn btn-secondary btn-icon"
-                          title="Generate Certificate PDF"
-                          onClick={() => generatePDFCert(c.id)}
-                        >
-                          <Award size={16} color="var(--amber-500)" />
-                        </button>
-
-                        <button
-                          className="btn btn-secondary btn-icon"
-                          title="Edit Candidate"
-                          onClick={() => openEditModal(c)}
-                        >
-                          <Edit3 size={16} />
-                        </button>
-
-                        {c.is_deleted ? (
+                      {isReadOnly ? (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          Read-Only
+                        </span>
+                      ) : (
+                        <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
                           <button
                             className="btn btn-secondary btn-icon"
-                            title="Restore Candidate (Preserved in DB)"
-                            onClick={() => handleRestoreCandidate(c.id, c.full_name)}
-                            style={{ color: '#10b981', borderColor: '#a7f3d0', background: 'rgba(16, 185, 129, 0.08)' }}
+                            title="Generate Offer Letter PDF"
+                            onClick={() => generatePDFOffer(c.id)}
                           >
-                            <RotateCcw size={16} />
+                            <FileText size={16} color="var(--primary-600)" />
                           </button>
-                        ) : (
+
                           <button
                             className="btn btn-secondary btn-icon"
-                            title="Move Candidate to Trash"
-                            onClick={() => setDeletingId(c.id)}
-                            style={{ color: '#ef4444' }}
+                            title="Generate Certificate PDF"
+                            onClick={() => generatePDFCert(c.id)}
                           >
-                            <Trash2 size={16} />
+                            <Award size={16} color="var(--amber-500)" />
                           </button>
-                        )}
-                      </div>
+
+                          <button
+                            className="btn btn-secondary btn-icon"
+                            title="Edit Candidate"
+                            onClick={() => openEditModal(c)}
+                          >
+                            <Edit3 size={16} />
+                          </button>
+
+                          {c.is_deleted ? (
+                            <button
+                              className="btn btn-secondary btn-icon"
+                              title="Restore Candidate (Preserved in DB)"
+                              onClick={() => handleRestoreCandidate(c.id, c.full_name)}
+                              style={{ color: '#10b981', borderColor: '#a7f3d0', background: 'rgba(16, 185, 129, 0.08)' }}
+                            >
+                              <RotateCcw size={16} />
+                            </button>
+                          ) : (
+                            <button
+                              className="btn btn-secondary btn-icon"
+                              title="Move Candidate to Trash"
+                              onClick={() => setDeletingId(c.id)}
+                              style={{ color: '#ef4444' }}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))

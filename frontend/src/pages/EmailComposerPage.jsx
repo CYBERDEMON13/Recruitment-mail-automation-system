@@ -13,11 +13,15 @@ import {
   Sparkles,
   ArrowRight,
   Wand2,
-  GitBranch
+  GitBranch,
+  ShieldAlert
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function EmailComposerPage() {
+  const { user } = useAuth();
+  const isReadOnly = user?.role === 'staff';
   const location = useLocation();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
@@ -181,6 +185,26 @@ export default function EmailComposerPage() {
 
   return (
     <div>
+      {isReadOnly && (
+        <div style={{
+          background: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          borderRadius: '8px',
+          padding: '0.75rem 1rem',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          color: 'var(--text-main)',
+          fontSize: '0.875rem'
+        }}>
+          <ShieldAlert size={20} style={{ color: '#3b82f6', flexShrink: 0 }} />
+          <div>
+            <strong>Staff Role (Read-Only Access):</strong> Automated email campaigns and AI email copy generation are disabled for Staff role accounts.
+          </div>
+        </div>
+      )}
+
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -257,7 +281,7 @@ export default function EmailComposerPage() {
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              disabled={aiGenerating}
+              disabled={aiGenerating || isReadOnly}
               onClick={handleAICopyGen}
               style={{ color: 'var(--primary-600)', borderColor: 'var(--primary-200)' }}
             >
@@ -344,7 +368,7 @@ export default function EmailComposerPage() {
           <div style={{ marginTop: '1.5rem' }}>
             <button
               className="btn btn-primary"
-              disabled={selectedCandidateIds.length === 0 || generatingPreview}
+              disabled={selectedCandidateIds.length === 0 || generatingPreview || isReadOnly}
               onClick={handleGeneratePreview}
               style={{ width: '100%', padding: '0.85rem' }}
             >

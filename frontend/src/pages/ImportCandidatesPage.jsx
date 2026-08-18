@@ -9,11 +9,15 @@ import {
   AlertTriangle, 
   X, 
   ArrowRight,
-  RefreshCw
+  RefreshCw,
+  ShieldAlert
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function ImportCandidatesPage() {
+  const { user } = useAuth();
+  const isReadOnly = user?.role === 'staff';
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [parseData, setParseData] = useState(null);
@@ -99,6 +103,26 @@ export default function ImportCandidatesPage() {
 
   return (
     <div>
+      {isReadOnly && (
+        <div style={{
+          background: 'rgba(59, 130, 246, 0.08)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          borderRadius: '8px',
+          padding: '0.75rem 1rem',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          color: 'var(--text-main)',
+          fontSize: '0.875rem'
+        }}>
+          <ShieldAlert size={20} style={{ color: '#3b82f6', flexShrink: 0 }} />
+          <div>
+            <strong>Staff Role (Read-Only Access):</strong> Batch importing candidates from Excel/CSV files is disabled for Staff role accounts.
+          </div>
+        </div>
+      )}
+
       <div className="page-header">
         <div>
           <h1 className="page-title">
@@ -183,7 +207,7 @@ export default function ImportCandidatesPage() {
         <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
           <button
             className="btn btn-primary"
-            disabled={!file || uploading}
+            disabled={!file || uploading || isReadOnly}
             onClick={handlePreviewUpload}
           >
             {uploading ? <span className="spinner"></span> : (

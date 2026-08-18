@@ -15,8 +15,11 @@ import {
   MailX
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function EmailHistoryPage() {
+  const { user } = useAuth();
+  const isReadOnly = user?.role === 'staff';
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -174,7 +177,7 @@ export default function EmailHistoryPage() {
                           <Eye size={16} />
                         </button>
 
-                        {log.status === 'Failed' && (
+                        {log.status === 'Failed' && !isReadOnly && (
                           <button
                             className="btn btn-secondary btn-icon"
                             title="Retry Email Sending"
@@ -267,7 +270,7 @@ export default function EmailHistoryPage() {
             </div>
 
             <div className="modal-footer">
-              {viewLog.status === 'Failed' && (
+              {viewLog.status === 'Failed' && !isReadOnly && (
                 <button
                   className="btn btn-primary"
                   onClick={() => handleRetryFailed(viewLog.id)}

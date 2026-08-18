@@ -29,10 +29,14 @@ function authorizeRole(...roles) {
                 severity: 'security',
                 user_email: req.user ? req.user.email : 'unauthenticated',
                 user_id: req.user ? req.user.id : null,
-                details: `Bypass attempt on Admin restricted route: ${req.originalUrl}`
+                details: `Unauthorized write/access attempt (${req.user?.role || 'guest'}) on restricted route: ${req.originalUrl}`
             });
 
-            return res.status(403).json({ success: false, message: 'Forbidden. Higher privilege (Administrator) required.' });
+            const message = req.user?.role === 'staff'
+                ? 'Forbidden: Staff accounts have Read-Only access. Higher privilege (HR Recruiter, HR Manager, or Admin) is required to perform edit/write operations.'
+                : 'Forbidden: Higher privilege required for this action.';
+
+            return res.status(403).json({ success: false, message });
         }
         next();
     };
